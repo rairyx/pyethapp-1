@@ -1,0 +1,857 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ABIContract	pyethapp/rpc_client.py	/^ABIContract = ContractProxy$/;"	v
+ALLSPHINXOPTS	docs/Makefile	/^ALLSPHINXOPTS   = -d $(BUILDDIR)\/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .$/;"	m
+ALLSPHINXOPTS	docs/make.bat	/^	set ALLSPHINXOPTS=-D latex_paper_size=%PAPER% %ALLSPHINXOPTS%$/;"	v
+ALLSPHINXOPTS	docs/make.bat	/^set ALLSPHINXOPTS=-d %BUILDDIR%\/doctrees %SPHINXOPTS% .$/;"	v
+Account	pyethapp/accounts.py	/^class Account(object):$/;"	c
+AccountsService	pyethapp/accounts.py	/^class AccountsService(BaseService):$/;"	c
+AppMock	pyethapp/tests/test_eth_service.py	/^class AppMock(object):$/;"	c
+BUILDDIR	docs/Makefile	/^BUILDDIR      = _build$/;"	m
+BUILDDIR	docs/make.bat	/^set BUILDDIR=_build$/;"	v
+BlockFilter	pyethapp/jsonrpc.py	/^class BlockFilter(object):$/;"	c
+CONFIG_FILE_NAME	pyethapp/config.py	/^CONFIG_FILE_NAME = 'config.yaml'$/;"	v
+Chain	pyethapp/jsonrpc.py	/^class Chain(Subdispatcher):$/;"	c
+ChainMock	pyethapp/tests/test_pow_service.py	/^    class ChainMock:$/;"	c	class:ChainServiceMock
+ChainService	pyethapp/eth_service.py	/^class ChainService(WiredService):$/;"	c
+ChainServiceMock	pyethapp/tests/test_pow_service.py	/^class ChainServiceMock(BaseService):$/;"	c
+CodernityDB	pyethapp/codernitydb_service.py	/^class CodernityDB(BaseDB, BaseService):$/;"	c
+Compilers	pyethapp/jsonrpc.py	/^class Compilers(Subdispatcher):$/;"	c
+Console	pyethapp/console_service.py	/^class Console(BaseService):$/;"	c
+ContractProxy	pyethapp/rpc_client.py	/^class ContractProxy(object):$/;"	c
+DB	pyethapp/jsonrpc.py	/^class DB(Subdispatcher):$/;"	c
+DBService	pyethapp/db_service.py	/^class DBService(BaseDB, BaseService):$/;"	c
+DEFAULT_COINBASE	pyethapp/accounts.py	/^DEFAULT_COINBASE = 'de0b295669a9fd93d5f28d9ec85e40f4cb697bae'.decode('hex')$/;"	v
+DEFAULT_PROFILE	pyethapp/profiles.py	/^DEFAULT_PROFILE = 'livenet'$/;"	v
+DELETE	pyethapp/lmdb_service.py	/^DELETE = object()$/;"	v
+DIFFICULTY	pyethapp/tests/test_pow_service.py	/^DIFFICULTY = 1024  # Mining difficulty.$/;"	v
+Data	pyethapp/eth_protocol.py	/^        class Data(rlp.Serializable):$/;"	c	class:ETHProtocol.newblockhashes
+DuplicatesFilter	pyethapp/eth_service.py	/^class DuplicatesFilter(object):$/;"	c
+ENTER_CONSOLE_TIMEOUT	pyethapp/console_service.py	/^ENTER_CONSOLE_TIMEOUT = 3$/;"	v
+ETHProtocol	pyethapp/eth_protocol.py	/^class ETHProtocol(BaseProtocol):$/;"	c
+ETHProtocolError	pyethapp/eth_protocol.py	/^class ETHProtocolError(SubProtocolError):$/;"	c
+EphemDB	pyethapp/ephemdb_service.py	/^class EphemDB(_EphemDB, BaseService):$/;"	c
+Eth	pyethapp/console_service.py	/^        class Eth(object):$/;"	c	function:Console.start
+EthApp	pyethapp/app.py	/^class EthApp(BaseApp):$/;"	c
+FallbackChoice	pyethapp/utils.py	/^class FallbackChoice(click.Choice):$/;"	c
+FilterManager	pyethapp/jsonrpc.py	/^class FilterManager(Subdispatcher):$/;"	c
+GIT_DESCRIBE_RE	pyethapp/__init__.py	/^GIT_DESCRIBE_RE = re.compile('^(?P<version>v\\d+\\.\\d+\\.\\d+)-(?P<git>\\d+-g[a-fA-F0-9]+(?:-dirty)?)$')$/;"	v
+GUI_GEVENT	pyethapp/console_service.py	/^GUI_GEVENT = 'gevent'$/;"	v
+GeventInputHook	pyethapp/console_service.py	/^class GeventInputHook(object):$/;"	c
+HISTORY	setup.py	/^    HISTORY = history_file.read().replace('.. :changelog:', '')$/;"	v
+I18NSPHINXOPTS	docs/Makefile	/^I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .$/;"	m
+I18NSPHINXOPTS	docs/make.bat	/^	set I18NSPHINXOPTS=-D latex_paper_size=%PAPER% %I18NSPHINXOPTS%$/;"	v
+I18NSPHINXOPTS	docs/make.bat	/^set I18NSPHINXOPTS=%SPHINXOPTS% .$/;"	v
+INSTALL_REQUIRES	setup.py	/^INSTALL_REQUIRES = list()$/;"	v
+INSTALL_REQUIRES	setup.py	/^INSTALL_REQUIRES = list(set(INSTALL_REQUIRES))$/;"	v
+INSTALL_REQUIRES_REPLACEMENTS	setup.py	/^INSTALL_REQUIRES_REPLACEMENTS = {$/;"	v
+IPCDomainSocketTransport	pyethapp/jsonrpc.py	/^class IPCDomainSocketTransport(ServerTransport):$/;"	c
+IPCRPCServer	pyethapp/jsonrpc.py	/^class IPCRPCServer(RPCServer):$/;"	c
+JSONRPCClient	pyethapp/rpc_client.py	/^class JSONRPCClient(object):$/;"	c
+JSONRPCClientReplyError	pyethapp/rpc_client.py	/^class JSONRPCClientReplyError(Exception):$/;"	c
+JSONRPCServer	pyethapp/jsonrpc.py	/^class JSONRPCServer(RPCServer):$/;"	c
+LOG_EVM	pyethapp/tests/test_jsonrpc.py	/^LOG_EVM = ($/;"	v
+LONG_DESCRIPTION	setup.py	/^LONG_DESCRIPTION = README + '\\n\\n' + HISTORY$/;"	v
+LevelDB	pyethapp/leveldb_service.py	/^class LevelDB(BaseDB):$/;"	c
+LevelDBService	pyethapp/leveldb_service.py	/^class LevelDBService(LevelDB, BaseService):$/;"	c
+LmDBService	pyethapp/lmdb_service.py	/^class LmDBService(BaseDB, BaseService):$/;"	c
+LogFilter	pyethapp/jsonrpc.py	/^class LogFilter(object):$/;"	c
+LoggingDispatcher	pyethapp/jsonrpc.py	/^class LoggingDispatcher(RPCDispatcher):$/;"	c
+MAX_NEWBLOCK_AGE	pyethapp/synchronizer.py	/^    MAX_NEWBLOCK_AGE = 5  # maximum age (in blocks) of blocks received as newblock$/;"	v	class:Synchronizer
+MD5Index	pyethapp/codernitydb_service.py	/^class MD5Index(HashIndex):$/;"	c
+MethodProxy	pyethapp/rpc_client.py	/^class MethodProxy(object):$/;"	c
+Miner	pyethapp/jsonrpc.py	/^class Miner(Subdispatcher):$/;"	c
+Miner	pyethapp/pow_service.py	/^class Miner(gevent.Greenlet):$/;"	c
+NULL	pyethapp/lmdb_service.py	/^NULL = object()$/;"	v
+Net	pyethapp/jsonrpc.py	/^class Net(Subdispatcher):$/;"	c
+PAPER	docs/Makefile	/^PAPER         =$/;"	m
+PAPER	docs/make.bat	/^	echo.  latex      to make LaTeX files, you can set PAPER=a4 or PAPER=letter$/;"	v
+PAPEROPT_a4	docs/Makefile	/^PAPEROPT_a4     = -D latex_paper_size=a4$/;"	m
+PAPEROPT_letter	docs/Makefile	/^PAPEROPT_letter = -D latex_paper_size=letter$/;"	m
+PROFILES	pyethapp/profiles.py	/^PROFILES = {$/;"	v
+PROPAGATE_ERRORS	pyethapp/jsonrpc.py	/^PROPAGATE_ERRORS = False$/;"	v
+PeerMock	pyethapp/tests/test_eth_protocol.py	/^class PeerMock(object):$/;"	c
+PeerMock	pyethapp/tests/test_eth_service.py	/^class PeerMock(object):$/;"	c
+PendingTransactionFilter	pyethapp/jsonrpc.py	/^class PendingTransactionFilter(object):$/;"	c
+Personal	pyethapp/jsonrpc.py	/^class Personal(Subdispatcher):$/;"	c
+PoWService	pyethapp/pow_service.py	/^class PoWService(BaseService):$/;"	c
+PoWWorker	pyethapp/pow_service.py	/^class PoWWorker(object):$/;"	c
+PyTest	setup.py	/^class PyTest(TestCommand):$/;"	c
+README	setup.py	/^    README = readme_file.read()$/;"	v	class:PyTest
+RPCServer	pyethapp/jsonrpc.py	/^class RPCServer(BaseService):$/;"	c
+SOLIDITY_AVAILABLE	pyethapp/tests/test_jsonrpc.py	/^SOLIDITY_AVAILABLE = 'solidity' in Compilers().compilers$/;"	v
+SPHINXBUILD	docs/Makefile	/^SPHINXBUILD   = sphinx-build$/;"	m
+SPHINXBUILD	docs/make.bat	/^	set SPHINXBUILD=sphinx-build$/;"	v
+SPHINXOPTS	docs/Makefile	/^SPHINXOPTS    =$/;"	m
+Services	pyethapp/tests/test_eth_service.py	/^    class Services(dict):$/;"	c	class:AppMock
+SigINTHandler	pyethapp/console_service.py	/^class SigINTHandler(object):$/;"	c
+Subdispatcher	pyethapp/jsonrpc.py	/^class Subdispatcher(object):$/;"	c
+SyncTask	pyethapp/synchronizer.py	/^class SyncTask(object):$/;"	c
+Synchronizer	pyethapp/synchronizer.py	/^class Synchronizer(object):$/;"	c
+TB	pyethapp/lmdb_service.py	/^TB = (2 ** 10) ** 4$/;"	v
+TIMEOUT	pyethapp/tests/test_pow_service.py	/^TIMEOUT = 15       # Timeout for single block being minded.$/;"	v
+TestApp	pyethapp/tests/test_console_service.py	/^    class TestApp(EthApp):$/;"	c	function:test_app
+TestApp	pyethapp/tests/test_jsonrpc.py	/^    class TestApp(EthApp):$/;"	c	function:test_app
+TestTransport	pyethapp/tests/test_jsonrpc.py	/^    class TestTransport(object):$/;"	c	function:test_app
+TransientBlock	pyethapp/eth_protocol.py	/^class TransientBlock(rlp.Serializable):$/;"	c
+TransientBlockBody	pyethapp/eth_protocol.py	/^class TransientBlockBody(rlp.Serializable):$/;"	c
+WSGIServerLogger	pyethapp/jsonrpc.py	/^class WSGIServerLogger(object):$/;"	c
+Web3	pyethapp/jsonrpc.py	/^class Web3(Subdispatcher):$/;"	c
+_OnBlockCallbackService	pyethapp/utils.py	/^    class _OnBlockCallbackService(BaseService):$/;"	c	function:on_block_callback_service_factory
+__call__	pyethapp/rpc_client.py	/^    __call__ = call$/;"	v	class:JSONRPCClient
+__call__	pyethapp/rpc_client.py	/^    def __call__(self, *args, **kargs):$/;"	m	class:MethodProxy	file:
+__contains__	pyethapp/accounts.py	/^    def __contains__(self, address):$/;"	m	class:AccountsService	file:
+__contains__	pyethapp/codernitydb_service.py	/^    def __contains__(self, key):$/;"	m	class:CodernityDB	file:
+__contains__	pyethapp/db_service.py	/^    def __contains__(self, key):$/;"	m	class:DBService	file:
+__contains__	pyethapp/eth_service.py	/^    def __contains__(self, v):$/;"	m	class:DuplicatesFilter	file:
+__contains__	pyethapp/leveldb_service.py	/^    def __contains__(self, key):$/;"	m	class:LevelDB	file:
+__contains__	pyethapp/lmdb_service.py	/^    def __contains__(self, key):$/;"	m	class:LmDBService	file:
+__eq__	pyethapp/codernitydb_service.py	/^    def __eq__(self, other):$/;"	m	class:CodernityDB	file:
+__eq__	pyethapp/db_service.py	/^    def __eq__(self, other):$/;"	m	class:DBService	file:
+__eq__	pyethapp/leveldb_service.py	/^    def __eq__(self, other):$/;"	m	class:LevelDB	file:
+__eq__	pyethapp/lmdb_service.py	/^    def __eq__(self, other):$/;"	m	class:LmDBService	file:
+__getitem__	pyethapp/accounts.py	/^    def __getitem__(self, address_or_idx):$/;"	m	class:AccountsService	file:
+__init__	pyethapp/accounts.py	/^    def __init__(self, app):$/;"	m	class:AccountsService
+__init__	pyethapp/accounts.py	/^    def __init__(self, keystore, password=None, path=None):$/;"	m	class:Account
+__init__	pyethapp/codernitydb_service.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:MD5Index
+__init__	pyethapp/codernitydb_service.py	/^    def __init__(self, app):$/;"	m	class:CodernityDB
+__init__	pyethapp/console_service.py	/^            def __init__(this, app):$/;"	m	class:Console.start.Eth
+__init__	pyethapp/console_service.py	/^    def __init__(self, app):$/;"	m	class:Console
+__init__	pyethapp/console_service.py	/^    def __init__(self, event):$/;"	m	class:SigINTHandler
+__init__	pyethapp/console_service.py	/^    def __init__(self, manager):$/;"	m	class:GeventInputHook
+__init__	pyethapp/db_service.py	/^    def __init__(self, app):$/;"	m	class:DBService
+__init__	pyethapp/ephemdb_service.py	/^    def __init__(self, app):$/;"	m	class:EphemDB
+__init__	pyethapp/eth_protocol.py	/^    def __init__(self, header, transaction_list, uncles, newblock_timestamp=0):$/;"	m	class:TransientBlock
+__init__	pyethapp/eth_protocol.py	/^    def __init__(self, peer, service):$/;"	m	class:ETHProtocol
+__init__	pyethapp/eth_service.py	/^    def __init__(self, app):$/;"	m	class:ChainService
+__init__	pyethapp/eth_service.py	/^    def __init__(self, max_items=128):$/;"	m	class:DuplicatesFilter
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self):$/;"	m	class:Compilers
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self):$/;"	m	class:FilterManager
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self):$/;"	m	class:LoggingDispatcher
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, app):$/;"	m	class:IPCRPCServer
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, app):$/;"	m	class:JSONRPCServer
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, chain):$/;"	m	class:BlockFilter
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, chain):$/;"	m	class:PendingTransactionFilter
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, chain, first_block, last_block, addresses=None, topics=None):$/;"	m	class:LogFilter
+__init__	pyethapp/jsonrpc.py	/^    def __init__(self, sockpath=None, queue_class=gevent.queue.Queue):$/;"	m	class:IPCDomainSocketTransport
+__init__	pyethapp/leveldb_service.py	/^    def __init__(self, app):$/;"	m	class:LevelDBService
+__init__	pyethapp/leveldb_service.py	/^    def __init__(self, dbfile):$/;"	m	class:LevelDB
+__init__	pyethapp/lmdb_service.py	/^    def __init__(self, app):$/;"	m	class:LmDBService
+__init__	pyethapp/pow_service.py	/^    def __init__(self, app):$/;"	m	class:PoWService
+__init__	pyethapp/pow_service.py	/^    def __init__(self, cpipe, cpu_pct):$/;"	m	class:PoWWorker
+__init__	pyethapp/pow_service.py	/^    def __init__(self, mining_hash, block_number, difficulty, nonce_callback,$/;"	m	class:Miner
+__init__	pyethapp/rpc_client.py	/^    def __init__(self, host='127.0.0.1', port=4000, print_communication=True,$/;"	m	class:JSONRPCClient
+__init__	pyethapp/rpc_client.py	/^    def __init__(self, sender, abi, address, call_func, transact_func):$/;"	m	class:ContractProxy
+__init__	pyethapp/rpc_client.py	/^    def __init__(self, sender, contract_address, function_name, translator,$/;"	m	class:MethodProxy
+__init__	pyethapp/synchronizer.py	/^    def __init__(self, chainservice, force_sync=None):$/;"	m	class:Synchronizer
+__init__	pyethapp/synchronizer.py	/^    def __init__(self, synchronizer, proto, blockhash, chain_difficulty=0, originator_only=False):$/;"	m	class:SyncTask
+__init__	pyethapp/tests/test_eth_service.py	/^    def __init__(self, app):$/;"	m	class:PeerMock
+__init__	pyethapp/tests/test_eth_service.py	/^    def __init__(self, db=None):$/;"	m	class:AppMock
+__init__	pyethapp/tests/test_jsonrpc.py	/^        def __init__(self, call_func):$/;"	m	class:test_app.TestTransport
+__init__	pyethapp/tests/test_pow_service.py	/^        def __init__(self):$/;"	m	class:ChainServiceMock.ChainMock
+__init__	pyethapp/tests/test_pow_service.py	/^    def __init__(self, app):$/;"	m	class:ChainServiceMock
+__init__	pyethapp/utils.py	/^    def __init__(self, choices, fallbacks, fallback_warning):$/;"	m	class:FallbackChoice
+__init__	setup.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:PyTest
+__iter__	pyethapp/accounts.py	/^    def __iter__(self):$/;"	m	class:AccountsService	file:
+__len__	pyethapp/accounts.py	/^    def __len__(self):$/;"	m	class:AccountsService	file:
+__repr__	pyethapp/accounts.py	/^    def __repr__(self):$/;"	m	class:Account	file:
+__repr__	pyethapp/codernitydb_service.py	/^    def __repr__(self):$/;"	m	class:CodernityDB	file:
+__repr__	pyethapp/db_service.py	/^    def __repr__(self):$/;"	m	class:DBService	file:
+__repr__	pyethapp/eth_protocol.py	/^    def __repr__(self):$/;"	m	class:TransientBlock	file:
+__repr__	pyethapp/jsonrpc.py	/^    def __repr__(self):$/;"	m	class:LogFilter	file:
+__repr__	pyethapp/leveldb_service.py	/^    def __repr__(self):$/;"	m	class:LevelDB	file:
+__repr__	pyethapp/lmdb_service.py	/^    def __repr__(self):$/;"	m	class:LmDBService	file:
+__repr__	pyethapp/rpc_client.py	/^    def __repr__(self):$/;"	m	class:JSONRPCClient	file:
+__version__	pyethapp/__init__.py	/^            __version__ = "{}+git-{}".format(match.group("version"), match.group("git"))$/;"	v
+__version__	pyethapp/__init__.py	/^    __version__ = 'undefined'$/;"	v
+__version__	pyethapp/__init__.py	/^    __version__ = _dist.version$/;"	v
+__version__	pyethapp/__init__.py	/^__version__ = None$/;"	v
+_add_blocks	pyethapp/eth_service.py	/^    def _add_blocks(self):$/;"	m	class:ChainService
+_check_pow	examples/loadchain.py	/^def _check_pow(header):$/;"	f
+_confirm_enter_console	pyethapp/console_service.py	/^    def _confirm_enter_console(self):$/;"	m	class:SigINTHandler
+_dec	pyethapp/config.py	/^    def _dec(data):$/;"	f	function:update_config_from_genesis_json
+_dist	pyethapp/__init__.py	/^    _dist = get_distribution('pyethapp')$/;"	v
+_fail_on_error_dispatch	pyethapp/jsonrpc.py	/^def _fail_on_error_dispatch(self, request):$/;"	f
+_get_block_before_tx	pyethapp/jsonrpc.py	/^    def _get_block_before_tx(self, txhash):$/;"	m	class:FilterManager
+_get_trace	pyethapp/jsonrpc.py	/^    def _get_trace(self, txhash):$/;"	m	class:FilterManager
+_has_key	pyethapp/leveldb_service.py	/^    def _has_key(self, key):$/;"	m	class:LevelDB
+_log	pyethapp/jsonrpc.py	/^    _log = slogging.get_logger('jsonrpc.wsgi')$/;"	v	class:WSGIServerLogger
+_on_new_head	pyethapp/eth_service.py	/^    def _on_new_head(self, block):$/;"	m	class:ChainService
+_on_new_head_candidate	pyethapp/eth_service.py	/^    def _on_new_head_candidate(self):$/;"	m	class:ChainService
+_print_exception	pyethapp/utils.py	/^    def _print_exception(self, context, type_, value, traceback):$/;"	f	function:enable_greenlet_debugger
+_progress	examples/export.py	/^def _progress(i):$/;"	f
+_run	pyethapp/codernitydb_service.py	/^    def _run(self):$/;"	m	class:CodernityDB
+_run	pyethapp/console_service.py	/^    def _run(self):$/;"	m	class:Console
+_run	pyethapp/db_service.py	/^    def _run(self):$/;"	m	class:DBService
+_run	pyethapp/ephemdb_service.py	/^    def _run(self):$/;"	m	class:EphemDB
+_run	pyethapp/jsonrpc.py	/^    def _run(self):$/;"	m	class:IPCRPCServer
+_run	pyethapp/jsonrpc.py	/^    def _run(self):$/;"	m	class:JSONRPCServer
+_run	pyethapp/leveldb_service.py	/^    def _run(self):$/;"	m	class:LevelDBService
+_run	pyethapp/lmdb_service.py	/^    def _run(self):$/;"	m	class:LmDBService
+_run	pyethapp/pow_service.py	/^    def _run(self):$/;"	m	class:Miner
+_run	pyethapp/pow_service.py	/^    def _run(self):$/;"	m	class:PoWService
+_stop_app	pyethapp/console_service.py	/^    def _stop_app(self):$/;"	m	class:Console
+account	pyethapp/app.py	/^def account(ctx):$/;"	f
+account	pyethapp/tests/test_account_service.py	/^def account(privkey, password, uuid):$/;"	f
+account	pyethapp/tests/test_accounts.py	/^def account(privkey, password, uuid):$/;"	f
+accounts	pyethapp/jsonrpc.py	/^    def accounts(self):$/;"	m	class:Miner
+accounts	pyethapp/tests/test_eth_service.py	/^        class accounts:$/;"	c	class:AppMock.Services
+accounts_with_address	pyethapp/accounts.py	/^    def accounts_with_address(self):$/;"	m	class:AccountsService
+activated	pyethapp/pow_service.py	/^        activated=False,$/;"	v	class:PoWService
+active	pyethapp/pow_service.py	/^    def active(self):$/;"	m	class:PoWService
+add_account	pyethapp/accounts.py	/^    def add_account(self, account, store=True, include_address=True, include_id=True):$/;"	m	class:AccountsService
+add_block	pyethapp/eth_service.py	/^    def add_block(self, t_block, proto):$/;"	m	class:ChainService
+add_mined_block	pyethapp/eth_service.py	/^    def add_mined_block(self, block):$/;"	m	class:ChainService
+add_mined_block	pyethapp/tests/test_pow_service.py	/^    def add_mined_block(self, block):$/;"	m	class:ChainServiceMock
+add_transaction	pyethapp/eth_service.py	/^    def add_transaction(self, tx, origin=None, force_broadcast=False):$/;"	m	class:ChainService
+address	pyethapp/accounts.py	/^    def address(self):$/;"	m	class:Account
+address_decoder	pyethapp/jsonrpc.py	/^def address_decoder(data):$/;"	f
+address_encoder	pyethapp/jsonrpc.py	/^def address_encoder(address):$/;"	f
+address_encoder	pyethapp/rpc_client.py	/^def address_encoder(address):$/;"	f
+app	pyethapp/app.py	/^def app(ctx, profile, alt_config, config_values, alt_data_dir, log_config, bootstrap_node, log_json,$/;"	f
+app	pyethapp/jsonrpc.py	/^    app = BaseApp(JSONRPCServer.default_config)$/;"	v	class:FilterManager
+app	pyethapp/pow_service.py	/^    app = BaseApp()$/;"	v
+app	pyethapp/tests/test_account_service.py	/^def app(request):$/;"	f
+app	pyethapp/tests/test_eth_service.py	/^        app=dict(dir=tempfile.mkdtemp()),$/;"	v	class:AppMock
+app	pyethapp/tests/test_pow_service.py	/^def app(request):$/;"	f
+apply_transaction	pyethapp/eth_service.py	/^def apply_transaction(block, tx):$/;"	f
+author	setup.py	/^    author='HeikoHeiko',$/;"	v
+author_email	setup.py	/^    author_email='heiko@ethdev.com',$/;"	v
+balance	pyethapp/rpc_client.py	/^    def balance(self, account):$/;"	m	class:JSONRPCClient
+base_services	pyethapp/tests/test_config.py	/^base_services = [DBService, NodeDiscovery, PeerManager, ChainService, JSONRPCServer]$/;"	v
+bind_unix_listener	pyethapp/ipc_rpc.py	/^def bind_unix_listener(path, backlog=50, user=None):$/;"	f
+block	pyethapp/eth_service.py	/^        block=ethereum_config.default_config$/;"	v	class:ChainService
+block	pyethapp/tests/test_eth_service.py	/^            block=eth_config.default_config$/;"	v	class:AppMock
+blockNumber	pyethapp/jsonrpc.py	/^    def blockNumber(self):$/;"	m	class:Chain
+block_1	pyethapp/tests/test_eth_service.py	/^block_1 = ($/;"	v
+block_cache_size	pyethapp/leveldb_service.py	/^    block_cache_size = 8 * 1024**2$/;"	v	class:LevelDB
+block_encoder	pyethapp/jsonrpc.py	/^def block_encoder(block, include_transactions=False, pending=False, is_header=False):$/;"	f
+block_from_rlp	pyethapp/console_service.py	/^            def block_from_rlp(this, rlp_data):$/;"	m	class:Console.start.Eth
+block_hash_decoder	pyethapp/jsonrpc.py	/^def block_hash_decoder(data):$/;"	f
+block_id_decoder	pyethapp/jsonrpc.py	/^def block_id_decoder(data):$/;"	f
+block_queue_size	pyethapp/eth_service.py	/^    block_queue_size = 1024$/;"	v	class:ChainService
+block_tag_encoder	pyethapp/rpc_client.py	/^def block_tag_encoder(val):$/;"	f
+blockbodies	pyethapp/eth_protocol.py	/^    class blockbodies(BaseProtocol.command):$/;"	c	class:ETHProtocol
+blockheaders	pyethapp/eth_protocol.py	/^    class blockheaders(BaseProtocol.command):$/;"	c	class:ETHProtocol
+blockheaders_request_timeout	pyethapp/synchronizer.py	/^    blockheaders_request_timeout = 8.$/;"	v	class:SyncTask
+blocknumber	pyethapp/rpc_client.py	/^    def blocknumber(self):$/;"	m	class:JSONRPCClient
+blocks	pyethapp/app.py	/^    def blocks():$/;"	f	function:import_blocks
+blocks_request_timeout	pyethapp/synchronizer.py	/^    blocks_request_timeout = 8.$/;"	v	class:SyncTask
+blocktest	pyethapp/app.py	/^def blocktest(ctx, file, name):$/;"	f
+bool_decoder	pyethapp/jsonrpc.py	/^def bool_decoder(data):$/;"	f
+broadcast	pyethapp/tests/test_eth_service.py	/^            def broadcast(*args, **kwargs):$/;"	m	class:AppMock.Services.peermanager
+broadcast_newblock	pyethapp/eth_service.py	/^    def broadcast_newblock(self, block, chain_difficulty=None, origin=None):$/;"	m	class:ChainService
+broadcast_transaction	pyethapp/eth_service.py	/^    def broadcast_transaction(self, tx, origin=None):$/;"	m	class:ChainService
+build_dao_header	pyethapp/dao.py	/^def build_dao_header(config):$/;"	f
+call	pyethapp/console_service.py	/^            def call(this, to, value=0, data='', sender=None,$/;"	m	class:Console.start.Eth
+call	pyethapp/jsonrpc.py	/^    def call(self, data, block_id='pending'):$/;"	m	class:Chain
+call	pyethapp/rpc_client.py	/^    def call(self, *args, **kargs):$/;"	m	class:MethodProxy
+call	pyethapp/rpc_client.py	/^    def call(self, method, *args):$/;"	m	class:JSONRPCClient
+cb	pyethapp/tests/test_eth_protocol.py	/^    def cb(proto, **data):$/;"	f	function:setup
+cb	pyethapp/utils.py	/^        def cb(self, blk):$/;"	m	class:on_block_callback_service_factory._OnBlockCallbackService
+chain	examples/export.py	/^    chain = get_chain()$/;"	v
+chain	examples/importblock.py	/^    chain = get_chain()$/;"	v
+chain	examples/loadchain.py	/^    chain = get_chain()$/;"	v
+chain	pyethapp/eth_service.py	/^    chain = None$/;"	v	class:ChainService
+check	pyethapp/jsonrpc.py	/^    def check(self):$/;"	m	class:BlockFilter
+check	pyethapp/jsonrpc.py	/^    def check(self):$/;"	m	class:LogFilter
+check	pyethapp/jsonrpc.py	/^    def check(self):$/;"	m	class:PendingTransactionFilter
+check_config	pyethapp/config.py	/^def check_config(config, required_config=required_config):$/;"	f
+classifiers	setup.py	/^    classifiers=[$/;"	v
+cleanup	pyethapp/codernitydb_service.py	/^    def cleanup(self, epoch):$/;"	m	class:CodernityDB
+cleanup	pyethapp/db_service.py	/^    def cleanup(self, epoch):$/;"	m	class:DBService
+cleanup	pyethapp/leveldb_service.py	/^    def cleanup(self, epoch):$/;"	m	class:LevelDB
+cleanup	pyethapp/lmdb_service.py	/^    def cleanup(self, epoch):$/;"	m	class:LmDBService
+clientVersion	pyethapp/jsonrpc.py	/^    def clientVersion(self):$/;"	m	class:Web3
+client_name	pyethapp/app.py	/^    client_name = 'pyethapp'$/;"	v	class:EthApp
+client_version	pyethapp/app.py	/^    client_version = '%s\/%s\/%s' % (__version__, sys.platform,$/;"	v	class:EthApp
+client_version_string	pyethapp/app.py	/^    client_version_string = '%s\/v%s' % (client_name, client_version)$/;"	v	class:EthApp
+cmd	examples/export.py	/^    cmd = sys.argv[1]$/;"	v
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 0$/;"	v	class:ETHProtocol.status
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 1$/;"	v	class:ETHProtocol.newblockhashes
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 2$/;"	v	class:ETHProtocol.transactions
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 3$/;"	v	class:ETHProtocol.getblockheaders
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 4$/;"	v	class:ETHProtocol.blockheaders
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 5$/;"	v	class:ETHProtocol.getblockbodies
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 6$/;"	v	class:ETHProtocol.blockbodies
+cmd_id	pyethapp/eth_protocol.py	/^        cmd_id = 7$/;"	v	class:ETHProtocol.newblock
+cmdclass	setup.py	/^    cmdclass={'test': PyTest},$/;"	v
+coinbase	pyethapp/accounts.py	/^    def coinbase(self):$/;"	m	class:AccountsService
+coinbase	pyethapp/jsonrpc.py	/^    def coinbase(self):$/;"	m	class:Chain
+coinbase	pyethapp/jsonrpc.py	/^    def coinbase(self):$/;"	m	class:Miner
+coinbase	pyethapp/rpc_client.py	/^    def coinbase(self):$/;"	m	class:JSONRPCClient
+coinbase	pyethapp/tests/test_eth_service.py	/^            coinbase = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"$/;"	v	class:AppMock.Services.accounts
+coinbase_hex	pyethapp/pow_service.py	/^        coinbase_hex=None,$/;"	v	class:PoWService
+commit	pyethapp/codernitydb_service.py	/^    def commit(self):$/;"	m	class:CodernityDB
+commit	pyethapp/db_service.py	/^    def commit(self):$/;"	m	class:DBService
+commit	pyethapp/leveldb_service.py	/^    def commit(self):$/;"	m	class:LevelDB
+commit	pyethapp/lmdb_service.py	/^    def commit(self):$/;"	m	class:LmDBService
+commit_refcount_changes	pyethapp/codernitydb_service.py	/^    def commit_refcount_changes(self, epoch):$/;"	m	class:CodernityDB
+commit_refcount_changes	pyethapp/db_service.py	/^    def commit_refcount_changes(self, epoch):$/;"	m	class:DBService
+commit_refcount_changes	pyethapp/leveldb_service.py	/^    def commit_refcount_changes(self, epoch):$/;"	m	class:LevelDB
+commit_refcount_changes	pyethapp/lmdb_service.py	/^    def commit_refcount_changes(self, epoch):$/;"	m	class:LmDBService
+compileLLL	pyethapp/jsonrpc.py	/^    def compileLLL(self, code):$/;"	m	class:Compilers
+compileSerpent	pyethapp/jsonrpc.py	/^    def compileSerpent(self, code):$/;"	m	class:Compilers
+compileSolidity	pyethapp/jsonrpc.py	/^    def compileSolidity(self, code):$/;"	m	class:Compilers
+compilers	pyethapp/jsonrpc.py	/^    def compilers(self):$/;"	m	class:Compilers
+config	pyethapp/app.py	/^def config(ctx):$/;"	f
+config	pyethapp/eth_service.py	/^    config = None$/;"	v	class:ChainService
+config	pyethapp/tests/test_eth_protocol.py	/^    config = dict()$/;"	v	class:PeerMock
+config	pyethapp/tests/test_eth_service.py	/^    config = dict($/;"	v	class:AppMock
+convert	pyethapp/utils.py	/^    def convert(self, value, param, ctx):$/;"	m	class:FallbackChoice
+copyright	docs/conf.py	/^copyright = u'2015, HeikoHeiko'$/;"	v
+corsdomain	pyethapp/jsonrpc.py	/^        corsdomain='',$/;"	v	class:JSONRPCServer
+cpu_pct	pyethapp/pow_service.py	/^        cpu_pct=100,$/;"	v	class:PoWService
+create	pyethapp/eth_protocol.py	/^        def create(self, proto, *bodies):$/;"	m	class:ETHProtocol.blockbodies
+create	pyethapp/eth_protocol.py	/^        def create(self, proto, chain_difficulty, chain_head_hash, genesis_hash):$/;"	m	class:ETHProtocol.status
+create	pyethapp/eth_protocol.py	/^        def create(self, proto, hash_or_number, amount, skip=0, reverse=1):$/;"	m	class:ETHProtocol.getblockheaders
+ct	examples/urlfetcher.py	/^ct = ethereum.abi.ContractTranslator([{"constant": false, "type": "function", "name": "get(string)", "outputs": [{"type": "int256", "name": "out"}], "inputs": [{"type": "string", "name": "url"}]}, {"inputs": [{"indexed": false, "type": "string", "name": "url"}, {"indexed": false, "type": "address", "name": "callback"}, {"indexed": false, "type": "uint256", "name": "responseId"}, {"indexed": false, "type": "uint256", "name": "fee"}], "type": "event", "name": "GetRequest(string,address,uint256,uint256)"}])$/;"	v
+ct2	examples/urlfetcher.py	/^ct2 = ethereum.abi.ContractTranslator([{"constant": false, "type": "function", "name": "callback(bytes,uint256)", "outputs": [], "inputs": [{"type": "bytes", "name": "response"}, {"type": "uint256", "name": "responseId"}]}])$/;"	v
+cwd	docs/conf.py	/^cwd = os.getcwd()$/;"	v
+data256	pyethapp/tests/test_eth_service.py	/^data256 = open(p).read()$/;"	v
+data_decoder	pyethapp/jsonrpc.py	/^def data_decoder(data):$/;"	f
+data_encoder	pyethapp/jsonrpc.py	/^def data_encoder(data, length=None):$/;"	f
+db	pyethapp/tests/test_eth_service.py	/^        db=dict(path='_db'),$/;"	v	class:AppMock
+dbs	pyethapp/db_service.py	/^dbs = {}$/;"	v
+dec_refcount	pyethapp/codernitydb_service.py	/^    def dec_refcount(self, key):$/;"	m	class:CodernityDB
+dec_refcount	pyethapp/db_service.py	/^    def dec_refcount(self, key):$/;"	m	class:DBService
+dec_refcount	pyethapp/leveldb_service.py	/^    def dec_refcount(self, key):$/;"	m	class:LevelDB
+dec_refcount	pyethapp/lmdb_service.py	/^    def dec_refcount(self, key):$/;"	m	class:LmDBService
+decode_arg	pyethapp/jsonrpc.py	/^def decode_arg(name, decoder):$/;"	f
+decode_payload	pyethapp/eth_protocol.py	/^        def decode_payload(cls, rlp_data):$/;"	m	class:ETHProtocol.newblock
+decode_payload	pyethapp/eth_protocol.py	/^        def decode_payload(cls, rlp_data):$/;"	m	class:ETHProtocol.transactions
+default_config	pyethapp/accounts.py	/^    default_config = dict(accounts=dict(keystore_dir='keystore', must_include_coinbase=True))$/;"	v	class:AccountsService
+default_config	pyethapp/app.py	/^    default_config = dict(BaseApp.default_config)$/;"	v	class:EthApp
+default_config	pyethapp/codernitydb_service.py	/^    default_config = dict(db=dict(path=''), app=dict(dir=''))$/;"	v	class:CodernityDB
+default_config	pyethapp/db_service.py	/^    default_config = dict(db=dict(implementation='LevelDB'))$/;"	v	class:DBService
+default_config	pyethapp/eth_service.py	/^    default_config = dict($/;"	v	class:ChainService
+default_config	pyethapp/jsonrpc.py	/^    default_config = dict(ipc=dict($/;"	v	class:IPCRPCServer
+default_config	pyethapp/jsonrpc.py	/^    default_config = dict(jsonrpc=dict($/;"	v	class:JSONRPCServer
+default_config	pyethapp/leveldb_service.py	/^    default_config = dict(data_dir='')$/;"	v	class:LevelDBService
+default_config	pyethapp/lmdb_service.py	/^    default_config = dict()  # the defaults are defined in pyethapp.db_service$/;"	v	class:LmDBService
+default_config	pyethapp/pow_service.py	/^    default_config = dict(pow=dict($/;"	v	class:PoWService
+default_config_path	pyethapp/config.py	/^default_config_path = get_config_path(default_data_dir)$/;"	v
+default_data_dir	pyethapp/config.py	/^default_data_dir = click.get_app_dir('pyethapp')$/;"	v
+default_gasprice	pyethapp/jsonrpc.py	/^default_gasprice = 60 * denoms.shannon$/;"	v
+default_startgas	pyethapp/jsonrpc.py	/^default_startgas = 500 * 1000$/;"	v
+delete	pyethapp/codernitydb_service.py	/^    def delete(self, key):$/;"	m	class:CodernityDB
+delete	pyethapp/db_service.py	/^    def delete(self, key):$/;"	m	class:DBService
+delete	pyethapp/leveldb_service.py	/^    def delete(self, key):$/;"	m	class:LevelDB
+delete	pyethapp/lmdb_service.py	/^    def delete(self, key):$/;"	m	class:LmDBService
+dependencies_order_of_build	pyethapp/rpc_client.py	/^def dependencies_order_of_build(target_contract, dependencies_map):$/;"	f
+deploy_dependencies_symbols	pyethapp/rpc_client.py	/^def deploy_dependencies_symbols(all_contract):$/;"	f
+deploy_solidity_contract	pyethapp/rpc_client.py	/^    def deploy_solidity_contract(self, sender, contract_name, all_contracts,  # pylint: disable=too-many-locals$/;"	m	class:JSONRPCClient
+description	setup.py	/^    description='Python Ethereum Client',$/;"	v
+disable	pyethapp/console_service.py	/^    def disable(self):$/;"	m	class:GeventInputHook
+dispatch	pyethapp/jsonrpc.py	/^    def dispatch(self, request):$/;"	m	class:LoggingDispatcher
+dispatcher	pyethapp/jsonrpc.py	/^    dispatcher = jrpc.dispatcher$/;"	v	class:FilterManager
+dist_loc	pyethapp/__init__.py	/^    dist_loc = os.path.normcase(_dist.location)$/;"	v
+dump	pyethapp/accounts.py	/^    def dump(self, include_address=True, include_id=True):$/;"	m	class:Account
+dump_config	pyethapp/app.py	/^def dump_config(config):$/;"	f
+dump_config	pyethapp/config.py	/^def dump_config(config):$/;"	f
+empty	pyethapp/tests/test_eth_service.py	/^empty = object()$/;"	v
+enable	pyethapp/console_service.py	/^    def enable(self, app=None):$/;"	m	class:GeventInputHook
+enable_greenlet_debugger	pyethapp/utils.py	/^def enable_greenlet_debugger():$/;"	f
+encode_res	pyethapp/jsonrpc.py	/^def encode_res(encoder):$/;"	f
+end	docs/make.bat	/^:end$/;"	l
+estimateGas	pyethapp/jsonrpc.py	/^    def estimateGas(self, data, block_id='pending'):$/;"	m	class:Chain
+eth	pyethapp/eth_service.py	/^        eth=dict(network_id=0, genesis='', pruning=-1),$/;"	v	class:ChainService
+eth	pyethapp/tests/test_eth_service.py	/^        eth=dict($/;"	v	class:AppMock
+eth_call	pyethapp/rpc_client.py	/^    def eth_call(self, sender='', to='', value=0, data='',$/;"	m	class:JSONRPCClient
+eth_sendTransaction	pyethapp/rpc_client.py	/^    def eth_sendTransaction(self, nonce=None, sender='', to='', value=0, data='',$/;"	m	class:JSONRPCClient
+exclude_patterns	docs/conf.py	/^exclude_patterns = ['_build']$/;"	v
+exit	pyethapp/synchronizer.py	/^    def exit(self, success=False):$/;"	m	class:SyncTask
+export_blocks	examples/export.py	/^def export_blocks(chain, head_number=None):$/;"	f
+export_blocks	pyethapp/app.py	/^def export_blocks(ctx, from_, to, file):$/;"	f
+export_transactions	examples/export.py	/^def export_transactions(chain, head_number=None):$/;"	f
+extensions	docs/conf.py	/^extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']$/;"	v
+fetch_blocks	pyethapp/synchronizer.py	/^    def fetch_blocks(self, blockheaders_chain):$/;"	m	class:SyncTask
+fetch_hashchain	pyethapp/synchronizer.py	/^    def fetch_hashchain(self):$/;"	m	class:SyncTask
+fields	pyethapp/eth_protocol.py	/^            fields = [$/;"	v	class:ETHProtocol.newblockhashes.Data
+fields	pyethapp/eth_protocol.py	/^    fields = [$/;"	v	class:TransientBlock
+fields	pyethapp/eth_protocol.py	/^    fields = [$/;"	v	class:TransientBlockBody
+filter_changes	pyethapp/rpc_client.py	/^    def filter_changes(self, fid):$/;"	m	class:JSONRPCClient
+filter_decoder	pyethapp/jsonrpc.py	/^def filter_decoder(filter_dict, chain):$/;"	f
+fin	pyethapp/tests/test_account_service.py	/^    def fin():$/;"	f	function:app
+fin	pyethapp/tests/test_console_service.py	/^    def fin():$/;"	f	function:test_app
+fin	pyethapp/tests/test_jsonrpc.py	/^    def fin():$/;"	f	function:test_app
+finalize_options	setup.py	/^    def finalize_options(self):$/;"	m	class:PyTest
+find	pyethapp/accounts.py	/^    def find(self, identifier):$/;"	m	class:AccountsService
+find_block	pyethapp/rpc_client.py	/^    def find_block(self, condition):$/;"	m	class:JSONRPCClient
+find_transaction	pyethapp/console_service.py	/^            def find_transaction(this, tx):$/;"	m	class:Console.start.Eth
+fn	pyethapp/tests/test_eth_service.py	/^fn = 'blocks256.hex.rlp'$/;"	v
+gasLimit	pyethapp/jsonrpc.py	/^    def gasLimit(self):$/;"	m	class:Chain
+gasPrice	pyethapp/jsonrpc.py	/^    def gasPrice(self):$/;"	m	class:Miner
+gaslimit	pyethapp/rpc_client.py	/^    def gaslimit(self):$/;"	m	class:JSONRPCClient
+genesis	pyethapp/eth_service.py	/^    genesis = None$/;"	v	class:ChainService
+genesis_json	pyethapp/tests/test_app.py	/^genesis_json = {$/;"	v
+genesisdata_dir	pyethapp/profiles.py	/^genesisdata_dir = path.abspath(path.join(path.dirname(__file__), 'genesisdata'))$/;"	v
+get	pyethapp/codernitydb_service.py	/^    def get(self, key):$/;"	m	class:CodernityDB
+get	pyethapp/db_service.py	/^    def get(self, key):$/;"	m	class:DBService
+get	pyethapp/leveldb_service.py	/^    def get(self, key):$/;"	m	class:LevelDB
+get	pyethapp/lmdb_service.py	/^    def get(self, key):$/;"	m	class:LmDBService
+getBalance	pyethapp/jsonrpc.py	/^    def getBalance(self, address, block_id=None):$/;"	m	class:Chain
+getBlockByHash	pyethapp/jsonrpc.py	/^    def getBlockByHash(self, block_hash, include_transactions):$/;"	m	class:Chain
+getBlockByNumber	pyethapp/jsonrpc.py	/^    def getBlockByNumber(self, block_id, include_transactions):$/;"	m	class:Chain
+getBlockTransactionCountByHash	pyethapp/jsonrpc.py	/^    def getBlockTransactionCountByHash(self, block_hash):$/;"	m	class:Chain
+getBlockTransactionCountByNumber	pyethapp/jsonrpc.py	/^    def getBlockTransactionCountByNumber(self, block_id):$/;"	m	class:Chain
+getCode	pyethapp/jsonrpc.py	/^    def getCode(self, address, block_id=None):$/;"	m	class:Chain
+getCompilers	pyethapp/jsonrpc.py	/^    def getCompilers(self):$/;"	m	class:Compilers
+getFilterChanges	pyethapp/jsonrpc.py	/^    def getFilterChanges(self, id_):$/;"	m	class:FilterManager
+getFilterLogs	pyethapp/jsonrpc.py	/^    def getFilterLogs(self, id_):$/;"	m	class:FilterManager
+getHex	pyethapp/jsonrpc.py	/^    def getHex(self, db_name, key):$/;"	m	class:DB
+getLogs	pyethapp/jsonrpc.py	/^    def getLogs(self, filter_dict):$/;"	m	class:FilterManager
+getStorageAt	pyethapp/jsonrpc.py	/^    def getStorageAt(self, address, index, block_id=None):$/;"	m	class:Chain
+getString	pyethapp/jsonrpc.py	/^    def getString(self, db_name, key):$/;"	m	class:DB
+getTransactionByBlockHashAndIndex	pyethapp/jsonrpc.py	/^    def getTransactionByBlockHashAndIndex(self, block_hash, index):$/;"	m	class:Chain
+getTransactionByBlockNumberAndIndex	pyethapp/jsonrpc.py	/^    def getTransactionByBlockNumberAndIndex(self, block_id, index):$/;"	m	class:Chain
+getTransactionByHash	pyethapp/jsonrpc.py	/^    def getTransactionByHash(self, tx_hash):$/;"	m	class:Chain
+getTransactionCount	pyethapp/jsonrpc.py	/^    def getTransactionCount(self, address, block_id='pending'):$/;"	m	class:Chain
+getTransactionReceipt	pyethapp/jsonrpc.py	/^    def getTransactionReceipt(self, tx_hash):$/;"	m	class:FilterManager
+getUncleByBlockHashAndIndex	pyethapp/jsonrpc.py	/^    def getUncleByBlockHashAndIndex(self, block_hash, index):$/;"	m	class:Chain
+getUncleByBlockNumberAndIndex	pyethapp/jsonrpc.py	/^    def getUncleByBlockNumberAndIndex(self, block_id, index):$/;"	m	class:Chain
+getUncleCountByBlockHash	pyethapp/jsonrpc.py	/^    def getUncleCountByBlockHash(self, block_hash):$/;"	m	class:Chain
+getUncleCountByBlockNumber	pyethapp/jsonrpc.py	/^    def getUncleCountByBlockNumber(self, block_id):$/;"	m	class:Chain
+getWork	pyethapp/jsonrpc.py	/^    def getWork(self):$/;"	m	class:Chain
+get_block	pyethapp/jsonrpc.py	/^    def get_block(self, block_id=None):$/;"	m	class:RPCServer
+get_by_address	pyethapp/accounts.py	/^    def get_by_address(self, address):$/;"	m	class:AccountsService
+get_by_id	pyethapp/accounts.py	/^    def get_by_id(self, id):$/;"	m	class:AccountsService
+get_chain	examples/export.py	/^def get_chain(data_dir=default_data_dir):$/;"	f
+get_chain	examples/importblock.py	/^def get_chain(data_dir=default_data_dir):$/;"	f
+get_chain	examples/loadchain.py	/^def get_chain(data_dir=default_data_dir):$/;"	f
+get_config_path	pyethapp/config.py	/^def get_config_path(data_dir=default_data_dir):$/;"	f
+get_data_default	pyethapp/jsonrpc.py	/^        def get_data_default(key, decoder, default=None):$/;"	f	function:Chain.sendTransaction
+get_default_config	pyethapp/config.py	/^def get_default_config(services):$/;"	f
+get_event	pyethapp/tests/test_jsonrpc.py	/^def get_event(full_abi, event_name):$/;"	f
+get_eventname_types	pyethapp/tests/test_jsonrpc.py	/^def get_eventname_types(event_description):$/;"	f
+getblockbodies	pyethapp/eth_protocol.py	/^    class getblockbodies(BaseProtocol.command):$/;"	c	class:ETHProtocol
+getblockheaders	pyethapp/eth_protocol.py	/^    class getblockheaders(BaseProtocol.command):$/;"	c	class:ETHProtocol
+gpsec	pyethapp/eth_service.py	/^    def gpsec(self, gas_spent=0, elapsed=0):$/;"	m	class:ChainService
+handle	pyethapp/ipc_rpc.py	/^def handle(socket, address):$/;"	f
+handle	pyethapp/jsonrpc.py	/^    def handle(self, socket, address):$/;"	m	class:IPCDomainSocketTransport
+handle_force	pyethapp/console_service.py	/^    def handle_force(self):$/;"	m	class:SigINTHandler
+handle_int	pyethapp/console_service.py	/^    def handle_int(self):$/;"	m	class:SigINTHandler
+hashrate	pyethapp/jsonrpc.py	/^    def hashrate(self):$/;"	m	class:Miner
+head_candidate	pyethapp/console_service.py	/^            head_candidate = pending$/;"	v	class:Console.start.Eth
+head_number	examples/export.py	/^    head_number = None$/;"	v
+help	pyethapp/app.py	/^              help="Log to file instead of stderr.")$/;"	v
+help	pyethapp/app.py	/^              help='Alternative config file')$/;"	v
+help	pyethapp/app.py	/^              help='Drop into interactive debugger on unhandled exceptions.')$/;"	v
+help	pyethapp/app.py	/^              help='Single configuration parameters (<param>=<value>)')$/;"	v
+help	pyethapp/app.py	/^              help='Unlock an account (prompts for password)')$/;"	v
+help	pyethapp/app.py	/^              help='log as structured json output')$/;"	v
+help	pyethapp/app.py	/^              help='pct cpu used for mining')$/;"	v
+help	pyethapp/app.py	/^              help='single bootstrap_node as enode:\/\/pubkey@host:port')$/;"	v
+here	pyethapp/__init__.py	/^    here = os.path.normcase(__file__)$/;"	v
+hex_hash	pyethapp/eth_protocol.py	/^    def hex_hash(self):$/;"	m	class:TransientBlock
+html_static_path	docs/conf.py	/^html_static_path = ['_static']$/;"	v
+html_theme	docs/conf.py	/^html_theme = 'default'$/;"	v
+htmlhelp_basename	docs/conf.py	/^htmlhelp_basename = 'pyethappdoc'$/;"	v
+import_account	pyethapp/app.py	/^def import_account(ctx, f, uuid):$/;"	f
+import_block	examples/importblock.py	/^def import_block(chain, rlp_data):$/;"	f
+import_blocks	pyethapp/app.py	/^def import_blocks(ctx, file):$/;"	f
+inc_refcount	pyethapp/codernitydb_service.py	/^    def inc_refcount(self, key, value):$/;"	m	class:CodernityDB
+inc_refcount	pyethapp/db_service.py	/^    def inc_refcount(self, key, value):$/;"	m	class:DBService
+inc_refcount	pyethapp/leveldb_service.py	/^    def inc_refcount(self, key, value):$/;"	m	class:LevelDB
+inc_refcount	pyethapp/lmdb_service.py	/^    def inc_refcount(self, key, value):$/;"	m	class:LmDBService
+init_from_rlp	pyethapp/eth_protocol.py	/^    def init_from_rlp(cls, block_data, newblock_timestamp=0):$/;"	m	class:TransientBlock
+initial_blockheaders_per_request	pyethapp/synchronizer.py	/^    initial_blockheaders_per_request = 32$/;"	v	class:SyncTask
+inputhook_gevent	pyethapp/console_service.py	/^def inputhook_gevent():$/;"	f
+install_handler	pyethapp/console_service.py	/^    def install_handler(self):$/;"	m	class:SigINTHandler
+install_handler_force	pyethapp/console_service.py	/^    def install_handler_force(self):$/;"	m	class:SigINTHandler
+install_requires	setup.py	/^    install_requires=INSTALL_REQUIRES,$/;"	v
+ipcpath	pyethapp/jsonrpc.py	/^        ipcpath='\/tmp\/pyethapp.ipc',$/;"	v	class:IPCRPCServer
+is_dao_challenge	pyethapp/dao.py	/^def is_dao_challenge(config, number, amount, skip):$/;"	f
+is_mining	pyethapp/eth_service.py	/^    def is_mining(self):$/;"	m	class:ChainService
+is_syncing	pyethapp/eth_service.py	/^    def is_syncing(self):$/;"	m	class:ChainService
+jrpc	pyethapp/jsonrpc.py	/^    jrpc = JSONRPCServer(app)$/;"	v	class:FilterManager
+keystore	pyethapp/tests/test_accounts.py	/^def keystore(account):$/;"	f
+keywords	setup.py	/^    keywords='pyethapp',$/;"	v
+knows_block	pyethapp/eth_service.py	/^    def knows_block(self, block_hash):$/;"	m	class:ChainService
+lastGasPrice	pyethapp/jsonrpc.py	/^    def lastGasPrice(self):$/;"	m	class:Chain
+lasterr	pyethapp/console_service.py	/^        def lasterr(n=1):$/;"	f	function:Console._run
+lastgasprice	pyethapp/rpc_client.py	/^    def lastgasprice(self):$/;"	m	class:JSONRPCClient
+lastlog	pyethapp/console_service.py	/^        def lastlog(n=10, prefix=None, level=None):$/;"	f	function:Console._run
+latest	pyethapp/console_service.py	/^            def latest(this):$/;"	m	class:Console.start.Eth
+latex_documents	docs/conf.py	/^latex_documents = [$/;"	v
+latex_elements	docs/conf.py	/^latex_elements = {$/;"	v
+license	setup.py	/^    license='MIT',$/;"	v
+link	pyethapp/ipc_rpc.py	/^def link(src, dest):$/;"	f
+list_accounts	pyethapp/app.py	/^def list_accounts(ctx):$/;"	f
+list_cb	pyethapp/tests/test_eth_protocol.py	/^    def list_cb(proto, blocks):  # different cb, as we expect a list of blocks$/;"	f	function:test_blocks
+listen_host	pyethapp/jsonrpc.py	/^        listen_host='127.0.0.1',$/;"	v	class:JSONRPCServer
+listen_port	pyethapp/jsonrpc.py	/^        listen_port=4000,$/;"	v	class:JSONRPCServer
+listening	pyethapp/jsonrpc.py	/^    def listening(self):$/;"	m	class:Net
+load	pyethapp/accounts.py	/^    def load(cls, path, password=None):$/;"	m	class:Account
+load_block_tests	pyethapp/utils.py	/^def load_block_tests(data, db):$/;"	f
+load_config	pyethapp/config.py	/^def load_config(path=default_config_path):$/;"	f
+load_contrib_services	pyethapp/utils.py	/^def load_contrib_services(config):  # FIXME$/;"	f
+lock	pyethapp/accounts.py	/^    def lock(self):$/;"	m	class:Account
+log	pyethapp/accounts.py	/^log = get_logger('accounts')$/;"	v
+log	pyethapp/app.py	/^log = slogging.get_logger('app')$/;"	v
+log	pyethapp/codernitydb_service.py	/^log = get_logger('db')$/;"	v
+log	pyethapp/config.py	/^log = slogging.get_logger('config')$/;"	v
+log	pyethapp/console_service.py	/^log = getLogger(__name__)  # pylint: disable=invalid-name$/;"	v
+log	pyethapp/db_service.py	/^log = get_logger('db')$/;"	v
+log	pyethapp/ephemdb_service.py	/^log = getLogger(__name__)$/;"	v
+log	pyethapp/eth_protocol.py	/^log = slogging.get_logger('protocol.eth')$/;"	v
+log	pyethapp/eth_service.py	/^log = get_logger('eth.chainservice')$/;"	v
+log	pyethapp/jsonrpc.py	/^    def log(cls, msg):$/;"	m	class:WSGIServerLogger
+log	pyethapp/leveldb_service.py	/^log = slogging.get_logger('db')$/;"	v
+log	pyethapp/lmdb_service.py	/^log = get_logger('db')$/;"	v
+log	pyethapp/pow_service.py	/^log = get_logger('pow')$/;"	v
+log	pyethapp/rpc_client.py	/^log = logging.getLogger(__name__)$/;"	v
+log	pyethapp/synchronizer.py	/^log = get_logger('eth.sync')$/;"	v
+log	pyethapp/tests/test_account_service.py	/^log = get_logger('tests.account_service')$/;"	v
+log	pyethapp/tests/test_console_service.py	/^log = get_logger('test.console_service')$/;"	v
+log	pyethapp/tests/test_jsonrpc.py	/^log = get_logger('test.jsonrpc')  # pylint: disable=invalid-name$/;"	v
+log	pyethapp/utils.py	/^log = slogging.get_logger('db')$/;"	v
+log_error	pyethapp/jsonrpc.py	/^    def log_error(cls, msg, *args):$/;"	m	class:WSGIServerLogger
+log_st	pyethapp/synchronizer.py	/^log_st = get_logger('eth.sync.task')$/;"	v
+log_sub	pyethapp/pow_service.py	/^log_sub = get_logger('pow.subprocess')$/;"	v
+loglist_encoder	pyethapp/jsonrpc.py	/^def loglist_encoder(loglist):$/;"	f
+logs	pyethapp/jsonrpc.py	/^    def logs(self):$/;"	m	class:LogFilter
+long_description	setup.py	/^    long_description=LONG_DESCRIPTION,$/;"	v
+make_key	pyethapp/codernitydb_service.py	/^    def make_key(self, key):$/;"	m	class:MD5Index
+make_key_value	pyethapp/codernitydb_service.py	/^    def make_key_value(self, data):$/;"	m	class:MD5Index
+make_request	examples/urlfetcher.py	/^def make_request(*args):$/;"	f
+make_request	pyethapp/sentry.py	/^def make_request(*args):$/;"	f
+man_pages	docs/conf.py	/^man_pages = [$/;"	v
+master_doc	docs/conf.py	/^master_doc = 'index'$/;"	v
+match	pyethapp/__init__.py	/^        match = GIT_DESCRIBE_RE.match(rev)$/;"	v
+max_blockheaders_per_request	pyethapp/synchronizer.py	/^    max_blockheaders_per_request = 192$/;"	v	class:SyncTask
+max_blocks_per_request	pyethapp/synchronizer.py	/^    max_blocks_per_request = 128$/;"	v	class:SyncTask
+max_cmd_id	pyethapp/eth_protocol.py	/^    max_cmd_id = 15  # FIXME$/;"	v	class:ETHProtocol
+max_elapsed	pyethapp/pow_service.py	/^    max_elapsed = 1.$/;"	v	class:Miner
+max_getblockheaders_count	pyethapp/eth_protocol.py	/^    max_getblockheaders_count = 192$/;"	v	class:ETHProtocol
+max_getblocks_count	pyethapp/eth_protocol.py	/^    max_getblocks_count = 128$/;"	v	class:ETHProtocol
+max_open_files	pyethapp/leveldb_service.py	/^    max_open_files = 32000$/;"	v	class:LevelDB
+max_retries	pyethapp/synchronizer.py	/^    max_retries = 16$/;"	v	class:SyncTask
+merge_dict	pyethapp/utils.py	/^def merge_dict(dest, source):$/;"	f
+mine_empty_blocks	pyethapp/pow_service.py	/^        mine_empty_blocks=True$/;"	v	class:PoWService
+mine_head_candidate	pyethapp/pow_service.py	/^    def mine_head_candidate(self):$/;"	m	class:PoWService
+mine_next_block	pyethapp/tests/test_console_service.py	/^        def mine_next_block(self):$/;"	m	class:test_app.TestApp
+mine_next_block	pyethapp/tests/test_jsonrpc.py	/^        def mine_next_block(self):$/;"	m	class:test_app.TestApp
+mining	pyethapp/jsonrpc.py	/^    def mining(self):$/;"	m	class:Miner
+mk_privkey	pyethapp/accounts.py	/^def mk_privkey(seed):$/;"	f
+mk_random_privkey	pyethapp/accounts.py	/^def mk_random_privkey():$/;"	f
+my_address	examples/urlfetcher.py	/^my_address = ethereum.utils.privtoaddr(my_privkey).encode('hex')$/;"	v
+my_contract_address	examples/urlfetcher.py	/^my_contract_address = ethereum.utils.normalize_address('0xd53096b3cf64d4739bb774e0f055653e7f2cd710')$/;"	v
+my_privkey	examples/urlfetcher.py	/^my_privkey = ethereum.utils.sha3('qwufqhwiufyqwiugxqwqcwrqwrcqr')$/;"	v
+name	pyethapp/accounts.py	/^    name = 'accounts'$/;"	v	class:AccountsService
+name	pyethapp/codernitydb_service.py	/^    name = 'db'$/;"	v	class:CodernityDB
+name	pyethapp/console_service.py	/^    name = 'console'$/;"	v	class:Console
+name	pyethapp/db_service.py	/^    name = 'db'$/;"	v	class:DBService
+name	pyethapp/ephemdb_service.py	/^    name = 'db'$/;"	v	class:EphemDB
+name	pyethapp/eth_protocol.py	/^    name = 'eth'$/;"	v	class:ETHProtocol
+name	pyethapp/eth_service.py	/^    name = 'chain'$/;"	v	class:ChainService
+name	pyethapp/jsonrpc.py	/^    name = 'ipc'$/;"	v	class:IPCRPCServer
+name	pyethapp/jsonrpc.py	/^    name = 'jsonrpc'$/;"	v	class:JSONRPCServer
+name	pyethapp/leveldb_service.py	/^    name = 'db'$/;"	v	class:LevelDBService
+name	pyethapp/lmdb_service.py	/^    name = 'db'$/;"	v	class:LmDBService
+name	pyethapp/pow_service.py	/^    name = 'pow'$/;"	v	class:PoWService
+name	pyethapp/tests/test_pow_service.py	/^    name = 'chain'$/;"	v	class:ChainServiceMock
+name	pyethapp/utils.py	/^        name = 'onblockservice%d' % on_block_callback_service_factory.created$/;"	v	class:on_block_callback_service_factory._OnBlockCallbackService
+name	setup.py	/^    name='pyethapp',$/;"	v
+network_id	pyethapp/eth_protocol.py	/^    network_id = 0$/;"	v	class:ETHProtocol
+network_id	pyethapp/tests/test_eth_service.py	/^            network_id=1,$/;"	v	class:AppMock
+new	pyethapp/accounts.py	/^    def new(cls, password, key=None, uuid=None, path=None):$/;"	m	class:Account
+newAccount	pyethapp/jsonrpc.py	/^    def newAccount(self, passwd):$/;"	m	class:Personal
+newBlockFilter	pyethapp/jsonrpc.py	/^    def newBlockFilter(self):$/;"	m	class:FilterManager
+newFilter	pyethapp/jsonrpc.py	/^    def newFilter(self, filter_dict):$/;"	m	class:FilterManager
+newPendingTransactionFilter	pyethapp/jsonrpc.py	/^    def newPendingTransactionFilter(self):$/;"	m	class:FilterManager
+new_abi_contract	pyethapp/rpc_client.py	/^    def new_abi_contract(self, contract_interface, address):$/;"	m	class:JSONRPCClient
+new_account	pyethapp/app.py	/^def new_account(ctx, uuid):$/;"	f
+new_contract	pyethapp/console_service.py	/^            def new_contract(this, abi, address, sender=None):$/;"	m	class:Console.start.Eth
+new_contract_proxy	pyethapp/rpc_client.py	/^    def new_contract_proxy(self, contract_interface, address):$/;"	m	class:JSONRPCClient
+new_f	pyethapp/jsonrpc.py	/^    def new_f(*args, **kwargs):$/;"	f	function:public
+new_f	pyethapp/jsonrpc.py	/^    def new_f(f, *args, **kwargs):$/;"	f	function:decode_arg
+new_f	pyethapp/jsonrpc.py	/^    def new_f(f, *args, **kwargs):$/;"	f	function:encode_res
+new_filter	pyethapp/rpc_client.py	/^    def new_filter(self, fromBlock=None, toBlock=None, address=None, topics=None):$/;"	m	class:JSONRPCClient
+new_logs	pyethapp/jsonrpc.py	/^    def new_logs(self):$/;"	m	class:LogFilter
+newblk_rlp	pyethapp/tests/test_eth_service.py	/^newblk_rlp = ($/;"	v
+newblock	pyethapp/eth_protocol.py	/^    class newblock(BaseProtocol.command):$/;"	c	class:ETHProtocol
+newblockhashes	pyethapp/eth_protocol.py	/^    class newblockhashes(BaseProtocol.command):$/;"	c	class:ETHProtocol
+nonce	pyethapp/jsonrpc.py	/^    def nonce(self, address, block_id='pending'):$/;"	m	class:Chain
+nonce	pyethapp/rpc_client.py	/^    def nonce(self, address):$/;"	m	class:JSONRPCClient
+on_block	examples/urlfetcher.py	/^def on_block(blk):$/;"	f
+on_block_callback_service_factory	pyethapp/utils.py	/^def on_block_callback_service_factory(on_start, on_block):$/;"	f
+on_new_head_candidate	pyethapp/pow_service.py	/^    def on_new_head_candidate(self, block):$/;"	m	class:PoWService
+on_newblockhashes	pyethapp/eth_service.py	/^    def on_newblockhashes(self, proto, newblockhashes):$/;"	m	class:ChainService
+on_receive_blockbodies	pyethapp/eth_service.py	/^    def on_receive_blockbodies(self, proto, bodies):$/;"	m	class:ChainService
+on_receive_blockheaders	pyethapp/eth_service.py	/^    def on_receive_blockheaders(self, proto, blockheaders):$/;"	m	class:ChainService
+on_receive_getblockbodies	pyethapp/eth_service.py	/^    def on_receive_getblockbodies(self, proto, blockhashes):$/;"	m	class:ChainService
+on_receive_getblockheaders	pyethapp/eth_service.py	/^    def on_receive_getblockheaders(self, proto, hash_or_number, block, amount, skip, reverse):$/;"	m	class:ChainService
+on_receive_newblock	pyethapp/eth_service.py	/^    def on_receive_newblock(self, proto, block, chain_difficulty):$/;"	m	class:ChainService
+on_receive_status	pyethapp/eth_service.py	/^    def on_receive_status(self, proto, eth_version, network_id, chain_difficulty, chain_head_hash,$/;"	m	class:ChainService
+on_receive_transactions	pyethapp/eth_service.py	/^    def on_receive_transactions(self, proto, transactions):$/;"	m	class:ChainService
+on_start	examples/urlfetcher.py	/^def on_start(_app):$/;"	f
+on_wire_protocol_start	pyethapp/eth_service.py	/^    def on_wire_protocol_start(self, proto):$/;"	m	class:ChainService
+on_wire_protocol_stop	pyethapp/eth_service.py	/^    def on_wire_protocol_stop(self, proto):$/;"	m	class:ChainService
+p	pyethapp/tests/test_eth_service.py	/^p = os.path.join(os.path.dirname(__file__), fn)$/;"	v
+package_data	setup.py	/^    package_data={$/;"	v
+packages	setup.py	/^    packages=[$/;"	v
+packets	pyethapp/tests/test_eth_protocol.py	/^    packets = []$/;"	v	class:PeerMock
+password	pyethapp/tests/test_account_service.py	/^def password():$/;"	f
+password	pyethapp/tests/test_accounts.py	/^def password():$/;"	f
+peerCount	pyethapp/jsonrpc.py	/^    def peerCount(self):$/;"	m	class:Net
+peermanager	pyethapp/tests/test_eth_service.py	/^        class peermanager:$/;"	c	class:AppMock.Services
+pending	pyethapp/console_service.py	/^            def pending(this):$/;"	m	class:Console.start.Eth
+poll	pyethapp/rpc_client.py	/^    def poll(self, transaction_hash, confirmations=None, timeout=None):$/;"	m	class:JSONRPCClient
+powworker_process	pyethapp/pow_service.py	/^def powworker_process(cpipe, cpu_pct):$/;"	f
+prefix	pyethapp/jsonrpc.py	/^    prefix = ''$/;"	v	class:Subdispatcher
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'db_'$/;"	v	class:DB
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'eth_'$/;"	v	class:Chain
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'eth_'$/;"	v	class:Compilers
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'eth_'$/;"	v	class:FilterManager
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'eth_'$/;"	v	class:Miner
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'net_'$/;"	v	class:Net
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'personal_'$/;"	v	class:Personal
+prefix	pyethapp/jsonrpc.py	/^    prefix = 'web3_'$/;"	v	class:Web3
+privkey	pyethapp/accounts.py	/^    def privkey(self):$/;"	m	class:Account
+privkey	pyethapp/tests/test_account_service.py	/^def privkey():$/;"	f
+privkey	pyethapp/tests/test_accounts.py	/^def privkey():$/;"	f
+processblock_apply_transaction	pyethapp/eth_service.py	/^processblock_apply_transaction = processblock.apply_transaction$/;"	v
+processed_elapsed	pyethapp/eth_service.py	/^    processed_elapsed = 0$/;"	v	class:ChainService
+processed_gas	pyethapp/eth_service.py	/^    processed_gas = 0$/;"	v	class:ChainService
+project	docs/conf.py	/^project = u'pyethapp'$/;"	v
+project_root	docs/conf.py	/^project_root = os.path.dirname(cwd)$/;"	v
+propose_path	pyethapp/accounts.py	/^    def propose_path(self, address):$/;"	m	class:AccountsService
+protocol	pyethapp/rpc_client.py	/^    protocol = JSONRPCProtocol()$/;"	v	class:JSONRPCClient
+protocolVersion	pyethapp/jsonrpc.py	/^    def protocolVersion(self):$/;"	m	class:Chain
+protocol_id	pyethapp/eth_protocol.py	/^    protocol_id = 1$/;"	v	class:ETHProtocol
+protocols	pyethapp/synchronizer.py	/^    def protocols(self):$/;"	m	class:SyncTask
+protocols	pyethapp/synchronizer.py	/^    def protocols(self):$/;"	m	class:Synchronizer
+pruning	pyethapp/tests/test_eth_service.py	/^            pruning=-1,$/;"	v	class:AppMock
+pubkey	pyethapp/accounts.py	/^    def pubkey(self):$/;"	m	class:Account
+public	pyethapp/jsonrpc.py	/^def public(f):$/;"	f
+public_methods	pyethapp/jsonrpc.py	/^public_methods = dict()$/;"	v
+put	pyethapp/codernitydb_service.py	/^    def put(self, key, value):$/;"	m	class:CodernityDB
+put	pyethapp/db_service.py	/^    def put(self, key, value):$/;"	m	class:DBService
+put	pyethapp/leveldb_service.py	/^    def put(self, key, value):$/;"	m	class:LevelDB
+put	pyethapp/lmdb_service.py	/^    def put(self, key, value):$/;"	m	class:LmDBService
+putHex	pyethapp/jsonrpc.py	/^    def putHex(self, db_name, key, value):$/;"	m	class:DB
+putString	pyethapp/jsonrpc.py	/^    def putString(self, db_name, key, value):$/;"	m	class:DB
+put_temporarily	pyethapp/codernitydb_service.py	/^    def put_temporarily(self, key, value):$/;"	m	class:CodernityDB
+put_temporarily	pyethapp/db_service.py	/^    def put_temporarily(self, key, value):$/;"	m	class:DBService
+put_temporarily	pyethapp/leveldb_service.py	/^    def put_temporarily(self, key, value):$/;"	m	class:LevelDB
+put_temporarily	pyethapp/lmdb_service.py	/^    def put_temporarily(self, key, value):$/;"	m	class:LmDBService
+pygments_style	docs/conf.py	/^pygments_style = 'sphinx'$/;"	v
+quantity_decoder	pyethapp/jsonrpc.py	/^def quantity_decoder(data):$/;"	f
+quantity_encoder	pyethapp/jsonrpc.py	/^def quantity_encoder(i):$/;"	f
+read_blocks	examples/loadchain.py	/^def read_blocks(chain):$/;"	f
+read_raw_blocks	examples/loadchain.py	/^def read_raw_blocks(chain, check_pow=False):$/;"	f
+receive	pyethapp/eth_protocol.py	/^        def receive(self, proto, data):$/;"	m	class:ETHProtocol.getblockheaders
+receive_blockbodies	pyethapp/synchronizer.py	/^    def receive_blockbodies(self, proto, bodies):$/;"	m	class:SyncTask
+receive_blockbodies	pyethapp/synchronizer.py	/^    def receive_blockbodies(self, proto, bodies):$/;"	m	class:Synchronizer
+receive_blockheaders	pyethapp/synchronizer.py	/^    def receive_blockheaders(self, proto, blockheaders):$/;"	m	class:SyncTask
+receive_blockheaders	pyethapp/synchronizer.py	/^    def receive_blockheaders(self, proto, blockheaders):$/;"	m	class:Synchronizer
+receive_blocks	pyethapp/tests/test_eth_service.py	/^def receive_blocks(rlp_data, leveldb=False, codernitydb=False):$/;"	f
+receive_message	pyethapp/jsonrpc.py	/^    def receive_message(self):$/;"	m	class:IPCDomainSocketTransport
+receive_newblock	pyethapp/synchronizer.py	/^    def receive_newblock(self, proto, t_block, chain_difficulty):$/;"	m	class:Synchronizer
+receive_newblockhashes	pyethapp/synchronizer.py	/^    def receive_newblockhashes(self, proto, newblockhashes):$/;"	m	class:Synchronizer
+receive_status	pyethapp/synchronizer.py	/^    def receive_status(self, proto, blockhash, chain_difficulty):$/;"	m	class:Synchronizer
+recv_found_nonce	pyethapp/pow_service.py	/^    def recv_found_nonce(self, bin_nonce, mixhash, mining_hash):$/;"	m	class:PoWService
+recv_hashrate	pyethapp/pow_service.py	/^    def recv_hashrate(self, hashrate):$/;"	m	class:PoWService
+recv_mine	pyethapp/pow_service.py	/^    def recv_mine(self, mining_hash, block_number, difficulty):$/;"	m	class:PoWWorker
+recv_set_cpu_pct	pyethapp/pow_service.py	/^    def recv_set_cpu_pct(self, cpu_pct):$/;"	m	class:PoWWorker
+register	pyethapp/jsonrpc.py	/^    def register(cls, json_rpc_service):$/;"	m	class:Subdispatcher
+release	docs/conf.py	/^release = pyethapp.__version__$/;"	v
+reopen	pyethapp/leveldb_service.py	/^    def reopen(self):$/;"	m	class:LevelDB
+reopen	pyethapp/lmdb_service.py	/^    def reopen(self):$/;"	m	class:LmDBService
+required_config	pyethapp/config.py	/^required_config = dict(node=dict(privkey_hex=''))$/;"	v
+required_services	pyethapp/jsonrpc.py	/^    required_services = ['chain']$/;"	v	class:Chain
+required_services	pyethapp/jsonrpc.py	/^    required_services = ['chain']$/;"	v	class:FilterManager
+required_services	pyethapp/jsonrpc.py	/^    required_services = ['db']$/;"	v	class:DB
+required_services	pyethapp/jsonrpc.py	/^    required_services = ['discovery', 'peermanager']$/;"	v	class:Net
+required_services	pyethapp/jsonrpc.py	/^    required_services = []$/;"	v	class:Compilers
+required_services	pyethapp/jsonrpc.py	/^    required_services = []$/;"	v	class:Subdispatcher
+retry_delay	pyethapp/synchronizer.py	/^    retry_delay = 2.$/;"	v	class:SyncTask
+rev	pyethapp/__init__.py	/^        rev = subprocess.check_output(['git', 'describe', '--tags', '--dirty'],$/;"	v
+revert_refcount_changes	pyethapp/codernitydb_service.py	/^    def revert_refcount_changes(self, epoch):$/;"	m	class:CodernityDB
+revert_refcount_changes	pyethapp/db_service.py	/^    def revert_refcount_changes(self, epoch):$/;"	m	class:DBService
+revert_refcount_changes	pyethapp/leveldb_service.py	/^    def revert_refcount_changes(self, epoch):$/;"	m	class:LevelDB
+revert_refcount_changes	pyethapp/lmdb_service.py	/^    def revert_refcount_changes(self, epoch):$/;"	m	class:LmDBService
+rlp_hash_hex	pyethapp/eth_service.py	/^def rlp_hash_hex(data):$/;"	f
+rounds	pyethapp/pow_service.py	/^    rounds = 100$/;"	v	class:Miner
+rpc_request	pyethapp/tests/test_jsonrpc.py	/^        def rpc_request(self, method, *args, **kwargs):$/;"	m	class:test_app.TestApp
+run	pyethapp/app.py	/^def run(ctx, dev, nodial, fake, console):$/;"	f
+run	pyethapp/pow_service.py	/^    def run(self):$/;"	m	class:PoWWorker
+run	pyethapp/synchronizer.py	/^    def run(self):$/;"	m	class:SyncTask
+run_tests	setup.py	/^    def run_tests(self):$/;"	m	class:PyTest
+script_globals	pyethapp/app.py	/^    script_globals = {}$/;"	v	class:EthApp
+sendRawTransaction	pyethapp/jsonrpc.py	/^    def sendRawTransaction(self, data):$/;"	m	class:Chain
+sendTransaction	pyethapp/jsonrpc.py	/^    def sendTransaction(self, data):$/;"	m	class:Chain
+send_found_nonce	pyethapp/pow_service.py	/^    def send_found_nonce(self, bin_nonce, mixhash, mining_hash):$/;"	m	class:PoWWorker
+send_hashrate	pyethapp/pow_service.py	/^    def send_hashrate(self, hashrate):$/;"	m	class:PoWWorker
+send_message	pyethapp/tests/test_jsonrpc.py	/^        def send_message(self, request):$/;"	m	class:test_app.TestTransport
+send_packet	pyethapp/tests/test_eth_protocol.py	/^    def send_packet(self, packet):$/;"	m	class:PeerMock
+send_reply	pyethapp/jsonrpc.py	/^    def send_reply(self, context, reply):$/;"	m	class:IPCDomainSocketTransport
+send_transaction	pyethapp/rpc_client.py	/^    def send_transaction(self, sender, to, value=0, data='', startgas=0,$/;"	m	class:JSONRPCClient
+sender	pyethapp/rpc_client.py	/^    def sender(self):$/;"	m	class:JSONRPCClient
+sent	pyethapp/eth_protocol.py	/^        sent = False$/;"	v	class:ETHProtocol.status
+serpent	pyethapp/console_service.py	/^            serpent = None$/;"	v	class:Console.start.Eth
+serve	pyethapp/ipc_rpc.py	/^def serve(sock, handler=handle):$/;"	f
+services	pyethapp/app.py	/^services = [DBService, AccountsService, NodeDiscovery, PeerManager, ChainService, PoWService,$/;"	v
+set_config_param	pyethapp/config.py	/^def set_config_param(config, s, strict=True):$/;"	f
+setup	pyethapp/tests/test_eth_protocol.py	/^def setup():$/;"	f
+setup_data_dir	pyethapp/config.py	/^def setup_data_dir(data_dir=None):$/;"	f
+setup_required_config	pyethapp/config.py	/^def setup_required_config(data_dir=default_data_dir):$/;"	f
+sha3	pyethapp/jsonrpc.py	/^    def sha3(self, data):$/;"	m	class:Web3
+show_methods	pyethapp/jsonrpc.py	/^    def show_methods(dispatcher, prefix=''):$/;"	m	class:FilterManager
+sign_tx	pyethapp/accounts.py	/^    def sign_tx(self, address, tx):$/;"	m	class:AccountsService
+sign_tx	pyethapp/accounts.py	/^    def sign_tx(self, tx):$/;"	m	class:Account
+solc_wrapper	pyethapp/console_service.py	/^            solc_wrapper = None$/;"	v	class:Console.start.Eth
+source_suffix	docs/conf.py	/^source_suffix = '.rst'$/;"	v
+start	pyethapp/console_service.py	/^    def start(self):$/;"	m	class:Console
+start	pyethapp/db_service.py	/^    def start(self):$/;"	m	class:DBService
+start	pyethapp/tests/test_console_service.py	/^        def start(self):$/;"	m	class:test_app.TestApp
+start	pyethapp/tests/test_jsonrpc.py	/^        def start(self):$/;"	m	class:test_app.TestApp
+start	pyethapp/utils.py	/^        def start(self):$/;"	m	class:on_block_callback_service_factory._OnBlockCallbackService
+start_console	pyethapp/app.py	/^    start_console = False$/;"	v	class:EthApp
+status	pyethapp/eth_protocol.py	/^    class status(BaseProtocol.command):$/;"	c	class:ETHProtocol
+stderr	pyethapp/__init__.py	/^                                      stderr=subprocess.STDOUT)$/;"	v
+stop	pyethapp/codernitydb_service.py	/^    def stop(self):$/;"	m	class:CodernityDB
+stop	pyethapp/ephemdb_service.py	/^    def stop(self):$/;"	m	class:EphemDB
+stop	pyethapp/jsonrpc.py	/^    def stop(self):$/;"	m	class:IPCRPCServer
+stop	pyethapp/jsonrpc.py	/^    def stop(self):$/;"	m	class:JSONRPCServer
+stop	pyethapp/leveldb_service.py	/^    def stop(self):$/;"	m	class:LevelDBService
+stop	pyethapp/lmdb_service.py	/^    def stop(self):$/;"	m	class:LmDBService
+stop	pyethapp/pow_service.py	/^    def stop(self):$/;"	m	class:Miner
+stop	pyethapp/pow_service.py	/^    def stop(self):$/;"	m	class:PoWService
+structure	pyethapp/eth_protocol.py	/^        structure = [$/;"	v	class:ETHProtocol.getblockheaders
+structure	pyethapp/eth_protocol.py	/^        structure = [$/;"	v	class:ETHProtocol.status
+structure	pyethapp/eth_protocol.py	/^        structure = [('block', Block), ('chain_difficulty', rlp.sedes.big_endian_int)]$/;"	v	class:ETHProtocol.newblock
+structure	pyethapp/eth_protocol.py	/^        structure = rlp.sedes.CountableList(BlockHeader)$/;"	v	class:ETHProtocol.blockheaders
+structure	pyethapp/eth_protocol.py	/^        structure = rlp.sedes.CountableList(Data)$/;"	v	class:ETHProtocol.newblockhashes
+structure	pyethapp/eth_protocol.py	/^        structure = rlp.sedes.CountableList(Transaction)$/;"	v	class:ETHProtocol.transactions
+structure	pyethapp/eth_protocol.py	/^        structure = rlp.sedes.CountableList(TransientBlockBody)$/;"	v	class:ETHProtocol.blockbodies
+structure	pyethapp/eth_protocol.py	/^        structure = rlp.sedes.CountableList(rlp.sedes.binary)$/;"	v	class:ETHProtocol.getblockbodies
+subdispatcher_classes	pyethapp/jsonrpc.py	/^    def subdispatcher_classes(cls):$/;"	m	class:RPCServer
+submitWork	pyethapp/jsonrpc.py	/^    def submitWork(self, nonce, mining_hash, mix_digest):$/;"	m	class:Chain
+synchronizer	pyethapp/eth_service.py	/^    synchronizer = None$/;"	v	class:ChainService
+syncing	pyethapp/jsonrpc.py	/^    def syncing(self):$/;"	m	class:Chain
+synctask_exited	pyethapp/synchronizer.py	/^    def synctask_exited(self, success=False):$/;"	m	class:Synchronizer
+templates_path	docs/conf.py	/^templates_path = ['_templates']$/;"	v
+test	pyethapp/jsonrpc.py	/^    def test(self, nonce):$/;"	m	class:Chain
+test_account_creation	pyethapp/tests/test_accounts.py	/^def test_account_creation(account, password, privkey, uuid):$/;"	f
+test_account_sorting	pyethapp/tests/test_account_service.py	/^def test_account_sorting(app):$/;"	f
+test_add_account	pyethapp/tests/test_account_service.py	/^def test_add_account(app, account):$/;"	f
+test_add_account_twice	pyethapp/tests/test_account_service.py	/^def test_add_account_twice(app, account):$/;"	f
+test_add_account_without_address	pyethapp/tests/test_account_service.py	/^def test_add_account_without_address(app, account, password):$/;"	f
+test_add_locked_account	pyethapp/tests/test_account_service.py	/^def test_add_locked_account(app, account, password):$/;"	f
+test_address	pyethapp/tests/test_accounts.py	/^def test_address(keystore, password, privkey):$/;"	f
+test_app	pyethapp/tests/test_console_service.py	/^def test_app(request, tmpdir):$/;"	f
+test_app	pyethapp/tests/test_jsonrpc.py	/^def test_app(request, tmpdir):$/;"	f
+test_basics	pyethapp/tests/test_eth_protocol.py	/^def test_basics():$/;"	f
+test_blocks	pyethapp/tests/test_eth_protocol.py	/^def test_blocks():$/;"	f
+test_coinbase	pyethapp/tests/test_account_service.py	/^def test_coinbase(app, account):$/;"	f
+test_compile_solidity	pyethapp/tests/test_jsonrpc.py	/^def test_compile_solidity():$/;"	f
+test_config_from_datadir	pyethapp/tests/test_app.py	/^def test_config_from_datadir(tmpdir):$/;"	f
+test_console_name_reg_contract	pyethapp/tests/test_console_service.py	/^def test_console_name_reg_contract(test_app):$/;"	f
+test_custom_config_file	pyethapp/tests/test_app.py	/^def test_custom_config_file(param):$/;"	f
+test_default_config	pyethapp/tests/test_config.py	/^def test_default_config():$/;"	f
+test_default_host	pyethapp/tests/test_rpc_client.py	/^def test_default_host():$/;"	f
+test_dump	pyethapp/tests/test_accounts.py	/^def test_dump(account):$/;"	f
+test_dump_config_does_not_leak_privkey	pyethapp/tests/test_config.py	/^def test_dump_config_does_not_leak_privkey(capsys):$/;"	f
+test_empty	pyethapp/tests/test_account_service.py	/^def test_empty(app):$/;"	f
+test_eth_nonce	pyethapp/tests/test_jsonrpc.py	/^def test_eth_nonce(test_app):$/;"	f
+test_export	pyethapp/tests/test_export.py	/^def test_export():$/;"	f
+test_externally	pyethapp/tests/test_jsonrpc.py	/^def test_externally():$/;"	f
+test_find	pyethapp/tests/test_account_service.py	/^def test_find(app, account):$/;"	f
+test_find_block	pyethapp/tests/test_rpc_client.py	/^def test_find_block():$/;"	f
+test_genesis_config	pyethapp/tests/test_genesis.py	/^def test_genesis_config():$/;"	f
+test_get_filter_changes	pyethapp/tests/test_jsonrpc.py	/^def test_get_filter_changes(test_app):$/;"	f
+test_get_logs	pyethapp/tests/test_jsonrpc.py	/^def test_get_logs(test_app):$/;"	f
+test_lock	pyethapp/tests/test_accounts.py	/^def test_lock(account, password, privkey):$/;"	f
+test_lock_after_adding	pyethapp/tests/test_account_service.py	/^def test_lock_after_adding(app, account, password):$/;"	f
+test_locked	pyethapp/tests/test_accounts.py	/^def test_locked(keystore, uuid):$/;"	f
+test_logfilters_topics	pyethapp/tests/test_jsonrpc.py	/^def test_logfilters_topics(test_app):$/;"	f
+test_new_block_filter	pyethapp/tests/test_jsonrpc.py	/^def test_new_block_filter(test_app):$/;"	f
+test_no_such_command	pyethapp/tests/test_app.py	/^def test_no_such_command():$/;"	f
+test_no_such_option	pyethapp/tests/test_app.py	/^def test_no_such_option():$/;"	f
+test_non_dict_yaml_as_config_file	pyethapp/tests/test_app.py	/^def test_non_dict_yaml_as_config_file(content):$/;"	f
+test_pending_transaction_filter	pyethapp/tests/test_jsonrpc.py	/^def test_pending_transaction_filter(test_app):$/;"	f
+test_pow_config	pyethapp/tests/test_pow_service.py	/^def test_pow_config(app):$/;"	f
+test_pow_default	pyethapp/tests/test_pow_service.py	/^def test_pow_default(app):$/;"	f
+test_pow_dont_mine_empty_block	pyethapp/tests/test_pow_service.py	/^def test_pow_dont_mine_empty_block(app):$/;"	f
+test_pow_mine_empty_block	pyethapp/tests/test_pow_service.py	/^def test_pow_mine_empty_block(app):$/;"	f
+test_profile	pyethapp/tests/test_genesis.py	/^def test_profile(profile):$/;"	f
+test_receive_block1	pyethapp/tests/test_eth_service.py	/^def test_receive_block1():$/;"	f
+test_receive_blocks_256	pyethapp/tests/test_eth_service.py	/^def test_receive_blocks_256():$/;"	f
+test_receive_blocks_256_leveldb	pyethapp/tests/test_eth_service.py	/^def test_receive_blocks_256_leveldb():$/;"	f
+test_receive_newblock	pyethapp/tests/test_eth_service.py	/^def test_receive_newblock():$/;"	f
+test_restart_service	pyethapp/tests/test_account_service.py	/^def test_restart_service(app, account, password):$/;"	f
+test_save_load_config	pyethapp/tests/test_config.py	/^def test_save_load_config():$/;"	f
+test_send_raw_transaction_with_contract	pyethapp/tests/test_jsonrpc.py	/^def test_send_raw_transaction_with_contract(test_app):$/;"	f
+test_send_transaction	pyethapp/tests/test_jsonrpc.py	/^def test_send_transaction(test_app):$/;"	f
+test_send_transaction_with_contract	pyethapp/tests/test_console_service.py	/^def test_send_transaction_with_contract(test_app):$/;"	f
+test_send_transaction_with_contract	pyethapp/tests/test_jsonrpc.py	/^def test_send_transaction_with_contract(test_app):$/;"	f
+test_sequence	pyethapp/tests/test_jsonrpc.py	/^    def test_sequence(s):$/;"	f	function:test_pending_transaction_filter
+test_set_config_param	pyethapp/tests/test_config.py	/^def test_set_config_param():$/;"	f
+test_set_host	pyethapp/tests/test_rpc_client.py	/^def test_set_host():$/;"	f
+test_setup_data_dir	pyethapp/tests/test_config.py	/^def test_setup_data_dir(tmpdir):$/;"	f
+test_setup_data_dir_existing_config	pyethapp/tests/test_config.py	/^def test_setup_data_dir_existing_config(tmpdir):$/;"	f
+test_setup_data_dir_existing_empty	pyethapp/tests/test_config.py	/^def test_setup_data_dir_existing_empty(tmpdir):$/;"	f
+test_show_usage	pyethapp/tests/test_app.py	/^def test_show_usage():$/;"	f
+test_sign	pyethapp/tests/test_accounts.py	/^def test_sign(account, password):$/;"	f
+test_status	pyethapp/tests/test_eth_protocol.py	/^def test_status():$/;"	f
+test_store	pyethapp/tests/test_account_service.py	/^def test_store(app, account):$/;"	f
+test_store_absolute	pyethapp/tests/test_account_service.py	/^def test_store_absolute(app, account):$/;"	f
+test_store_dir	pyethapp/tests/test_account_service.py	/^def test_store_dir(app, account):$/;"	f
+test_store_overwrite	pyethapp/tests/test_account_service.py	/^def test_store_overwrite(app, account):$/;"	f
+test_store_private	pyethapp/tests/test_account_service.py	/^def test_store_private(app, account, password):$/;"	f
+test_unlock	pyethapp/tests/test_accounts.py	/^def test_unlock(keystore, password, privkey, uuid):$/;"	f
+test_unlock_wrong	pyethapp/tests/test_accounts.py	/^def test_unlock_wrong(keystore, password, privkey, uuid):$/;"	f
+test_update	pyethapp/tests/test_account_service.py	/^def test_update(app, account, password):$/;"	f
+test_update_config	pyethapp/tests/test_config.py	/^def test_update_config():$/;"	f
+test_uuid_setting	pyethapp/tests/test_accounts.py	/^def test_uuid_setting(account):$/;"	f
+tests_require	setup.py	/^    tests_require=[$/;"	v
+texinfo_documents	docs/conf.py	/^texinfo_documents = [$/;"	v
+to_block	pyethapp/eth_protocol.py	/^    def to_block(self, env, parent=None):$/;"	m	class:TransientBlock
+topic_decoder	pyethapp/rpc_client.py	/^def topic_decoder(topic):$/;"	f
+topic_encoder	pyethapp/rpc_client.py	/^def topic_encoder(topic):$/;"	f
+trace_block	pyethapp/jsonrpc.py	/^    def trace_block(self, blockhash, exclude=[]):$/;"	m	class:FilterManager
+trace_transaction	pyethapp/jsonrpc.py	/^    def trace_transaction(self, txhash, exclude=[]):$/;"	m	class:FilterManager
+transact	pyethapp/console_service.py	/^            def transact(this, to, value=0, data='', sender=None,$/;"	m	class:Console.start.Eth
+transact	pyethapp/rpc_client.py	/^    def transact(self, *args, **kargs):$/;"	m	class:MethodProxy
+transaction_queue_size	pyethapp/eth_service.py	/^    transaction_queue_size = 1024$/;"	v	class:ChainService
+transactions	pyethapp/eth_protocol.py	/^    class transactions(BaseProtocol.command):$/;"	c	class:ETHProtocol
+tx_encoder	pyethapp/jsonrpc.py	/^def tx_encoder(transaction, block, i, pending):$/;"	f
+tx_hash_decoder	pyethapp/jsonrpc.py	/^def tx_hash_decoder(data):$/;"	f
+uninstallFilter	pyethapp/jsonrpc.py	/^    def uninstallFilter(self, id_):$/;"	m	class:FilterManager
+unlink	pyethapp/ipc_rpc.py	/^def unlink(path):$/;"	f
+unlock	pyethapp/accounts.py	/^    def unlock(self, password):$/;"	m	class:Account
+unlockAccount	pyethapp/jsonrpc.py	/^    def unlockAccount(self, account_address, passwd, duration):$/;"	m	class:Personal
+unlock_accounts	pyethapp/app.py	/^def unlock_accounts(account_ids, account_service, max_attempts=3, password=None):$/;"	f
+unlocked_accounts	pyethapp/accounts.py	/^    def unlocked_accounts(self):$/;"	m	class:AccountsService
+up	pyethapp/eth_service.py	/^    def up(b):$/;"	f	function:update_watcher
+update	pyethapp/eth_service.py	/^    def update(self, data):$/;"	m	class:DuplicatesFilter
+update_account	pyethapp/accounts.py	/^    def update_account(self, account, new_password, include_address=True, include_id=True):$/;"	m	class:AccountsService
+update_account	pyethapp/app.py	/^def update_account(ctx, account):$/;"	f
+update_config_from_genesis_json	pyethapp/config.py	/^def update_config_from_genesis_json(config, genesis_json_filename_or_dict):$/;"	f
+update_watcher	pyethapp/eth_service.py	/^def update_watcher(chainservice):$/;"	f
+url	setup.py	/^    url='https:\/\/github.com\/ethereum\/pyethapp',$/;"	v
+usage	examples/export.py	/^    def usage():$/;"	f
+uuid	pyethapp/accounts.py	/^    def uuid(self):$/;"	m	class:Account
+uuid	pyethapp/accounts.py	/^    def uuid(self, value):$/;"	m	class:Account
+uuid	pyethapp/tests/test_account_service.py	/^def uuid():$/;"	f
+uuid	pyethapp/tests/test_accounts.py	/^def uuid():$/;"	f
+valid_kargs	pyethapp/rpc_client.py	/^    valid_kargs = set(('gasprice', 'startgas', 'value'))$/;"	v	class:MethodProxy
+validate_alt_config_file	pyethapp/config.py	/^def validate_alt_config_file(ctx, param, value):$/;"	f
+version	docs/conf.py	/^version = pyethapp.__version__$/;"	v
+version	pyethapp/eth_protocol.py	/^    version = 62$/;"	v	class:ETHProtocol
+version	pyethapp/jsonrpc.py	/^    def version(self):$/;"	m	class:Net
+version	setup.py	/^    version=version,$/;"	v
+version	setup.py	/^version = '1.5.0'$/;"	v
+warn_invalid	pyethapp/sentry.py	/^def warn_invalid(block, errortype='other'):$/;"	f
+wire_protocol	pyethapp/eth_service.py	/^    wire_protocol = eth_protocol.ETHProtocol  # create for each peer$/;"	v	class:ChainService
+write	pyethapp/jsonrpc.py	/^    write = log$/;"	v	class:WSGIServerLogger
+write_buffer_size	pyethapp/leveldb_service.py	/^    write_buffer_size = 4 * 1024**2$/;"	v	class:LevelDB
+write_config	pyethapp/config.py	/^def write_config(config, path=default_config_path):$/;"	f
+z_address	pyethapp/rpc_client.py	/^z_address = '\\x00' * 20$/;"	v
+zip_safe	setup.py	/^    zip_safe=False,$/;"	v

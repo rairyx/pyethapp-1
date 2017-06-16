@@ -56,7 +56,6 @@ class ETHProtocolError(SubProtocolError):
 
 
 class ETHProtocol(BaseProtocol):
-
     """
     DEV Ethereum Wire Protocol
     https://github.com/ethereum/wiki/wiki/Ethereum-Wire-Protocol
@@ -67,7 +66,7 @@ class ETHProtocol(BaseProtocol):
     max_cmd_id = 15  # FIXME
     name = 'eth'
     version = 62
-
+    idle = True
     max_getblocks_count = 128
     max_getblockheaders_count = 192
 
