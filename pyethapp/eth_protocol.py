@@ -75,6 +75,10 @@ class ETHProtocol(BaseProtocol):
         self.config = peer.config
         BaseProtocol.__init__(self, peer, service)
 
+    def set_idle(self):
+        self.idle = True 
+
+    
     class status(BaseProtocol.command):
 
         """
