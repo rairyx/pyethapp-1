@@ -43,6 +43,7 @@ class SyncTask(object):
         self.chain = synchronizer.chain
         self.chainservice = synchronizer.chainservice
         self.originating_proto = proto
+        self.skeleton_peer = None 
         self.originator_only = originator_only
         self.blockhash = blockhash
         self.chain_difficulty = chain_difficulty
@@ -83,14 +84,21 @@ class SyncTask(object):
         header_batch = []
         skeleton_fetch_done=False 
         from0 = self.chain.head.number
+
         log_st.debug('current block number:%u', from0, origin=self.originating_proto)
         while not skeleton_fetch_done:
         # Get skeleton headers
             deferred = AsyncResult()
-               
-            self.requests[self.protocols[0]] = deferred
-           
-            self.originating_proto.send_getblockheaders(from0+self.max_blockheaders_per_request,self.max_skeleton_size,self.max_blockheaders_per_request-1,0)  
+            protos = self.protocols 
+            if not protos:
+                log_st.warn('no protocols available')
+                self.exit(False)
+            if self.originating_proto.is_stopped:
+                self.skeleton_peer= protos[0] 
+            else:
+                self.skeleton_peer=self.originating_proto  
+            self.requests[self.skeleton_peer] = deferred 
+            self.skeleton_peer.send_getblockheaders(from0+self.max_blockheaders_per_request,self.max_skeleton_size,self.max_blockheaders_per_request-1,0)  
             try:
                    skeleton = deferred.get(block=True,timeout=self.blockheaders_request_timeout)
                  #  assert isinstance(skeleton,list)
@@ -98,12 +106,13 @@ class SyncTask(object):
             except gevent.Timeout:
                    log_st.warn('syncing skeleton timed out')
                  #todo drop originating proto 
-                   self.exit()
+                   self.exit(False)
             finally:
                 #                    # is also executed 'on the way out' when any other clause of the try statement
                 #                    # is left via a break, continue or return statement.
                 #                    del self.requests[proto]
-                   del self.requests[self.originating_proto]
+                   #del self.requests[self.originating_proto]
+                   del self.requests[self.skeleton_peer]
 
                     
             log_st.debug('skeleton received',num= len(skeleton), skeleton=skeleton)  
@@ -172,13 +181,6 @@ class SyncTask(object):
                del self.requests[proto_received]    
          except gevent.Timeout:
                log_st.warn('syncing batch hashchain timed out')
-
-        # finally:
-        #       del self.requests[proto]
-               
-            
-                
-         if proto_received is None:
                retry += 1
                if retry >= self.max_retries:
                     log_st.warn('headers sync failed with all peers',
@@ -442,7 +444,7 @@ class SyncTask(object):
             log_st.debug('remaining headers',num=len(self.batch_requests),headers=self.batch_requests)
             proto.set_idle() 
             self.requests[proto].set(proto)
-        elif proto == self.originating_proto: #make sure it's from the originating proto 
+        elif proto == self.skeleton_peer: #make sure it's from the originating proto 
             self.requests[proto].set(blockheaders)
      #   self.header_request.set(blockheaders)
         
