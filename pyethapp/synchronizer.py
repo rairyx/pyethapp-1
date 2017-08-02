@@ -90,11 +90,18 @@ class SyncTask(object):
         while not skeleton_fetch_done:
         # Get skeleton headers
             deferred = AsyncResult()
-            protos = self.protocols 
-            if not protos:
-                log_st.warn('no protocols available')
-                self.exit(success=False)
+            protos = self.idle_protocols() 
+         #   if not protos:
+         #       log_st.warn('no protocols available')
+         #       self.exit(success=False)
+         #   else
+                
+
             if self.originating_proto.is_stopped:
+            #    if not protos:
+            #      log_st.warn('no protocols available')
+            #      self.exit(success=False)
+
                 self.skeleton_peer= protos[0] 
             else:
                 self.skeleton_peer=self.originating_proto  
@@ -161,15 +168,16 @@ class SyncTask(object):
                  try:
                      start=next(requests).number  
                  except StopIteration:
-                     start=self.batch_requests[0]
-
-                 self.requests[proto] = deferred 
+                 #    start=self.batch_requests[0].number
+                     break
+                 self.requests[proto] = deferred
+                 log_st.debug('start header', start=start) 
                  proto.send_getblockheaders(start,self.max_blockheaders_per_request)
                  proto.idle = False 
                  log_st.debug('sent header request',request= start , proto=proto) 
              else:
                log_st.debug('batch header fetching done')
-               return self.batch_results 
+               return self.batch_result 
          try:
                proto_received = deferred.get(timeout=self.blockheaders_request_timeout)
                log_st.debug('headers batch received from proto',proto=proto_received)
