@@ -7,6 +7,7 @@ from ethereum.slogging import get_logger
 import ethereum.utils as utils
 import traceback
 from itertools import cycle
+from blinker import signal
 
 log = get_logger('eth.sync')
 log_st = get_logger('eth.sync.task')
@@ -33,7 +34,7 @@ class SyncTask(object):
     max_skeleton_size = 128
     max_blocks_per_request = 128
     max_retries = 16
-    retry_delay = 2.
+    retry_delay = 3.
     blocks_request_timeout = 8.
     blockheaders_request_timeout = 19.
     
@@ -55,6 +56,8 @@ class SyncTask(object):
         self.end_block_number = self.start_block_number + 1  # minimum synctask
         self.max_block_revert = 3600*24 / self.chainservice.config['eth']['block']['DIFF_ADJUSTMENT_CUTOFF']
         self.start_block_number_min = max(self.chain.head.number-self.max_block_revert, 0)
+   #     self.header_ready=signal('ready')
+   #     self.header_ready.connect(self.deliver_header)
         gevent.spawn(self.run)
 
     def run(self):
@@ -98,11 +101,11 @@ class SyncTask(object):
                 
 
             if self.originating_proto.is_stopped:
-            #    if not protos:
-            #      log_st.warn('no protocols available')
-            #      self.exit(success=False)
-
-                self.skeleton_peer= protos[0] 
+                if protos:
+                    self.skeleton_peer= protos[0] 
+                else: 
+                   log_st.warn('no protocols available')
+                   self.exit(success=False)
             else:
                 self.skeleton_peer=self.originating_proto  
             self.requests[self.skeleton_peer] = deferred 
@@ -136,7 +139,9 @@ class SyncTask(object):
                  # fetch_blocks(header_batch)
             from0 = from0 + self.max_skeleton_size*self.max_blockheaders_per_request   
        #insert batch_header to hashchain      
-               
+
+
+
 #send requests in batches, receive one header batch at a time    
     def fetch_headerbatch(self, skeleton):
         
@@ -157,32 +162,33 @@ class SyncTask(object):
         # while there are unanswered requests
         
 
-        while True:
- #           requests = cycle(batch_requests)
-         requests = iter(self.batch_requests)
-         deferred = AsyncResult()
-         for proto in self.idle_protocols():
-                   
+        while True: 
+          requests = iter(self.batch_requests)  
+          deferred = AsyncResult()
+          self.header_request=deferred 
+          for proto in self.idle_protocols():
+             
+             proto_deferred = AsyncResult()
                # check if it's finished
+             
              if self.batch_requests:
                  try:
                      start=next(requests).number  
                  except StopIteration:
                  #    start=self.batch_requests[0].number
                      break
-                 self.requests[proto] = deferred
-                 log_st.debug('start header', start=start) 
+                 self.requests[proto] = proto_deferred
                  proto.send_getblockheaders(start,self.max_blockheaders_per_request)
                  proto.idle = False 
                  log_st.debug('sent header request',request= start , proto=proto) 
              else:
                log_st.debug('batch header fetching done')
                return self.batch_result 
-         try:
+          try:
                proto_received = deferred.get(timeout=self.blockheaders_request_timeout)
                log_st.debug('headers batch received from proto',proto=proto_received)
-               del self.requests[proto_received]    
-         except gevent.Timeout:
+               del self.header_request 
+          except gevent.Timeout:
                log_st.warn('syncing batch hashchain timed out')
                retry += 1
                if retry >= self.max_retries:
@@ -194,16 +200,8 @@ class SyncTask(object):
                     gevent.sleep(self.retry_delay)
                     continue
 
-                 
-               #verify the header and deliver it to the next step 
-         #      self.verify_headers(proto,headers)
-         #pack batch headers  
-         #      for header in range[headers]:
-         #          batch_result.insert(headers[0]-from0,header)
-
-               #send to header processor/body downloader 
-              # self.deliver(headers)
-        return batch_result   
+ 
+           
 
     def idle_protocols(self):
         idle = []
@@ -232,98 +230,6 @@ class SyncTask(object):
             return blockheaders_batch
         
 
-#    def fetch_hashchain(self):
-#        log_st.debug('fetching hashchain')
-#        blockheaders_chain = [] # height falling order
-#        blockhash = self.blockhash
-#         assert blockhash not in self.chain
-
-        # get block hashes until we found a known one
-#        retry = 0
-#        max_blockheaders_per_request = self.initial_blockheaders_per_request
-#        while blockhash not in self.chain:
-#            # proto with highest_difficulty should be the proto we got the newblock from
-#            blockheaders_batch = []
-#
-#            # try with protos
-#            protocols = self.protocols
-#            if not protocols:
-#                log_st.warn('no protocols available')
-#                return self.exit(success=False)
-#
-#            for proto in protocols:
-#                log.debug('syncing with', proto=proto)
-#                if proto.is_stopped:
-#                    continue
-#
-#                # request
-#                assert proto not in self.requests
-#                deferred = AsyncResult()
-#                self.requests[proto] = deferred
-#                proto.send_getblockheaders(blockhash, max_blockheaders_per_request)
-#                try:
-#                    blockheaders_batch = deferred.get(block=True,
-#                                                      timeout=self.blockheaders_request_timeout)
-#                except gevent.Timeout:
-#                    log_st.warn('syncing hashchain timed out')
-#                    continue
-#                finally:
-#                    # is also executed 'on the way out' when any other clause of the try statement
-#                    # is left via a break, continue or return statement.
-#                    del self.requests[proto]
-#
-#                if not blockheaders_batch:
-#                    log_st.warn('empty getblockheaders result')
-#                    continue
-#                if not all(isinstance(bh, BlockHeader) for bh in blockheaders_batch):
-#                    log_st.warn('got wrong data type', expected='BlockHeader',
-#                                received=type(blockheaders_batch[0]))
-#                    continue
-#                break
-#
-#            if not blockheaders_batch:
-#                retry += 1
-#                if retry >= self.max_retries:
-#                    log_st.warn('headers sync failed with all peers', num_protos=len(protocols))
-#                    return self.exit(success=False)
-#                else:
-#                    log_st.info('headers sync failed with peers, retry', retry=retry)
-#                    gevent.sleep(self.retry_delay)
-#                    continue
-#            retry = 0
-#
-#            for header in blockheaders_batch:  # youngest to oldest
-#                blockhash = header.hash
-#                if blockhash not in self.chain:
-#                    if header.number <= self.start_block_number_min:
-#                        # We have received so many headers that a very unlikely big revert will happen,
-#                        # which is nearly impossible.
-#                        log_st.warn('syncing failed with endless headers',
-#                                    end=header.number, len=len(blockheaders_chain))
-#                        return self.exit(success=False)
-#                    elif len(blockheaders_chain) == 0 or blockheaders_chain[-1].prevhash == header.hash:
-#                        blockheaders_chain.append(header)
-#                    else:
-#                        log_st.warn('syncing failed because discontinuous header received',
-#                                    child=blockheaders_chain[-1], parent=header)
-#                        return self.exit(success=False)
-#                else:
-#                    log_st.debug('found known block header', blockhash=utils.encode_hex(blockhash),
-#                                 is_genesis=bool(blockhash == self.chain.genesis.hash))
-#                    break
-#            else:  # if all headers in batch added to blockheaders_chain
-#                blockhash = header.prevhash
-#
-#            start = "#%d %s" % (blockheaders_chain[0].number, utils.encode_hex(blockheaders_chain[0].hash)[:8])
-#            end = "#%d %s" % (blockheaders_chain[-1].number, utils.encode_hex(blockheaders_chain[-1].hash)[:8])
-#            log_st.info('downloaded ' + str(len(blockheaders_chain)) + ' blockheaders', start=start, end=end)
-#            self.end_block_number = self.chain.head.number + len(blockheaders_chain)
-#            max_blockheaders_per_request = self.max_blockheaders_per_request
-#
-#        self.start_block_number = self.chain.get(blockhash).number
-#        self.end_block_number = self.chain.get(blockhash).number + len(blockheaders_chain)
-#        log_st.debug('computed missing numbers', start_number=self.start_block_number, end_number=self.end_block_number)
-#        self.fetch_blocks(blockheaders_chain)
 
     def fetch_blocks(self, blockheaders_chain):
         # fetch blocks (no parallelism here)
@@ -448,7 +354,7 @@ class SyncTask(object):
               self.batch_requests.remove(blockheaders[0])
             log_st.debug('remaining headers',num=len(self.batch_requests),headers=self.batch_requests)
             proto.set_idle()
-             
+            del self.requests[proto] 
             #deliver to header processer
                 
             #pack batch headers  
@@ -458,10 +364,10 @@ class SyncTask(object):
             # self.deliver(headers)
 
             #evoke next header fetching task 
-            self.requests[proto].set(proto)
+        #    self.requests[proto].set(proto)
+            self.header_request.set(proto)
         elif proto == self.skeleton_peer: #make sure it's from the originating proto 
             self.requests[proto].set(blockheaders)
-        
          
 
          
