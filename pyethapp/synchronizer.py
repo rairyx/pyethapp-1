@@ -8,6 +8,7 @@ import ethereum.utils as utils
 import traceback
 from blinker import signal
 import Queue as Q
+from gevent.queue import Queue
 
 log = get_logger('eth.sync')
 log_st = get_logger('eth.sync.task')
@@ -45,7 +46,7 @@ class SyncTask(object):
 
     retry_delay = 1.
     blocks_request_timeout = 8.
-    blockheaders_request_timeout = 11.
+    blockheaders_request_timeout = 15.
     
 
     def __init__(self, synchronizer, proto, blockhash, chain_difficulty=0, originator_only=False):
@@ -68,10 +69,12 @@ class SyncTask(object):
         self.end_block_number = self.start_block_number + 1  # minimum synctask
         self.max_block_revert = 3600*24 / self.chainservice.config['eth']['block']['DIFF_ADJUSTMENT_CUTOFF']
         self.start_block_number_min = max(self.chain.head.number-self.max_block_revert, 0)
-        
+     #   self.blockheader_queue = Queue() #headers delivered for body download
+
    #     self.header_ready=signal('ready')
    #     self.header_ready.connect(self.deliver_header)
         gevent.spawn(self.run)
+      #   gevent.spawn(self.fetch_blocks),
 
     def run(self):
         log_st.info('spawning new synctask')
@@ -290,7 +293,8 @@ class SyncTask(object):
           #   log_st.debug('issue fetching blocks',header_processed=self.header_processed, blocks=processed, proto=proto_received,count=len(processed),start=processed[0].number)  
              
              count=len(processed)
-            # if self.fetch_blocks(processed):                            
+             self.synchronizer.blockheader_queue.put(processed)
+           # if self.fetch_blocks(processed):                            
              self.header_processed += count 
              #else:
              #    return self.batch_result[:self.header_processed] 
@@ -339,30 +343,92 @@ class SyncTask(object):
         
 
 
-    def fetch_blocks(self, blockheaders_chain):
+ #   def receive_blockbodies(self, proto, bodies):
+ #       log.debug('block bodies received', proto=proto, num=len(bodies))
+ #       if proto not in self.requests:
+ #           log.debug('unexpected blocks')
+ #           return
+ #       self.requests[proto].set(bodies)
+
+
+    def receive_blockheaders(self, proto, blockheaders):
+        log.debug('blockheaders received:', proto=proto, num=len(blockheaders), blockheaders=blockheaders)
+        if proto not in self.requests:
+           log.debug('unexpected blockheaders')
+           return
+        if self.batch_requests:
+            self.header_request.set({'proto':proto,'headers':blockheaders})
+        elif proto == self.skeleton_peer: #make sure it's from the originating proto 
+            self.requests[proto].set(blockheaders)
+         
+class SyncBody(object):
+
+    max_blocks_per_request = 192
+    blocks_request_timeout = 8.
+    max_retries = 5
+    retry_delay = 3.
+    def __init__(self, synchronizer, chain_difficulty=0, originator_only=False):
+        self.synchronizer = synchronizer
+        self.chain = synchronizer.chain
+        self.chainservice = synchronizer.chainservice
+        self.originator_only = originator_only
+        self.chain_difficulty = chain_difficulty
+        self.requests = dict()  # proto: Event
+        gevent.spawn(self.run)
+ 
+    @property
+    def protocols(self):
+        if self.originator_only:
+            return [self.originating_proto]
+        return self.synchronizer.protocols
+
+    def exit(self, success=False):
+        if not success:
+            log_st.warn('body syncing failed')
+        else:
+            log_st.debug('successfully synced')
+        self.synchronizer.syncbody_exited(success)
+
+
+     
+    def run(self):
+        log_st.info('spawning new syncbodytask')
+        try:
+            self.fetch_blocks()
+        except Exception:
+            print(traceback.format_exc())
+            self.exit(success=False)
+
+    def fetch_blocks(self):
         # fetch blocks (no parallelism here)
-        log_st.debug('fetching blocks', num=len(blockheaders_chain))
-        assert blockheaders_chain
+      #  log_st.debug('fetching blocks', num=len(blockheaders_chain))
+      #  assert blockheaders_chain
        # blockheaders_chain.reverse()  # height rising order
-        num_blocks = len(blockheaders_chain)
+        num_blocks = 0
         num_fetched = 0
         retry = 0
-        while blockheaders_chain:
-            blockhashes_batch = [h.hash for h in blockheaders_chain[:self.max_blocks_per_request]]
+        batch_header = []
+        log_st.debug('start fetching blocks')
+        #while not self.blockheaders_queue.empty():
+        while True:
+          batch_header= self.synchronizer.blockheader_queue.get()
+          num_blocks = len(batch_header)
+          log_st.debug('delivered headers', delivered_heades=batch_header)
+          while batch_header: 
+            blockhashes_batch = [h.hash for h in batch_header[:self.max_blocks_per_request]]
             bodies = []
-
             # try with protos
-            protocols = self.idle_protocols()
+            protocols = self.body_idle_protocols()
             if not protocols:
                 log_st.warn('no protocols available')
                 return self.exit(success=False)
 
-            for proto in protocols:
+            for proto in self.body_idle_protocols():
+                assert proto not in self.requests
                 if proto.is_stopped:
                     continue
-                assert proto not in self.requests
-                # request
-                log_st.debug('requesting blocks', num=len(blockhashes_batch), missing=len(blockheaders_chain)-len(blockhashes_batch))
+                # requestlog_st.debug('requesting blocks', num=len(blockhashes_batch), missing=len(blockheaders_chain)-len(blockhashes_batch))
+                log_st.debug('requesting blocks', num=len(blockhashes_batch), missing=len(batch_header)-len(blockhashes_batch))
                 deferred = AsyncResult()
                 self.requests[proto] = deferred
                 proto.send_getblockbodies(*blockhashes_batch)
@@ -389,7 +455,7 @@ class SyncTask(object):
             if not bodies:
                 retry += 1
                 if retry >= self.max_retries:
-                    log_st.warn('bodies sync failed with all peers', missing=len(blockheaders_chain))
+                    log_st.warn('bodies sync failed with all peers',missing=len(batch_header))
                     return self.exit(success=False)
                 else:
                     log_st.info('bodies sync failed with peers, retry', retry=retry)
@@ -401,7 +467,7 @@ class SyncTask(object):
             log_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
             for body in bodies:
                 try:
-                    h = blockheaders_chain.pop(0)
+                    h = batch_header.pop(0)
                     t_block = TransientBlock(h, body.transactions, body.uncles)
                     self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
                 except IndexError as e:
@@ -411,37 +477,14 @@ class SyncTask(object):
 
         # done
         last_block = t_block
-        assert not len(blockheaders_chain)
-      #  assert last_block.header.hash == self.blockhash
+        assert not len(batch_header)
+       # assert last_block.header.hash == self.blockhash
        # log_st.debug('syncing finished')
         # at this point blocks are not in the chain yet, but in the add_block queue
         if self.chain_difficulty >= self.chain.head.chain_difficulty():
             self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
         return True
-        #self.exit(success=True)
-
-    def receive_newblockhashes(self, proto, newblockhashes):
-        """
-        no way to check if this really an interesting block at this point.
-        might lead to an amplification attack, need to track this proto and judge usefullness
-        """
-        log.debug('received newblockhashes', num=len(newblockhashes), proto=proto)
-        # log.debug('DISABLED')
-        # return
-        newblockhashes = [h.hash for h in newblockhashes if not self.chainservice.knows_block(h.hash)]
-        if (proto not in self.protocols) or (not newblockhashes) or self.synctask:
-            log.debug('discarding', known=bool(not newblockhashes), synctask=bool(self.synctask))
-            return
-        if len(newblockhashes) != 1:
-            log.warn('supporting only one newblockhash', num=len(newblockhashes))
-        if not self.chainservice.is_syncing:
-            blockhash = newblockhashes[0]
-            log.debug('starting synctask for newblockhashes', blockhash=blockhash.encode('hex'))
-            self.synctask = SyncTask(self, proto, blockhash, 0, originator_only=True)
-
-
-
-
+    
     def receive_blockbodies(self, proto, bodies):
         log.debug('block bodies received', proto=proto, num=len(bodies))
         if proto not in self.requests:
@@ -449,19 +492,14 @@ class SyncTask(object):
             return
         self.requests[proto].set(bodies)
 
+    def body_idle_protocols(self):
+        idle = []
+        for proto in self.protocols:
+            if proto.body_idle:
+               idle.append(proto)
+        return idle        
 
-    def receive_blockheaders(self, proto, blockheaders):
-        log.debug('blockheaders received:', proto=proto, num=len(blockheaders), blockheaders=blockheaders)
-        if proto not in self.requests:
-           log.debug('unexpected blockheaders')
-           return
-        if self.batch_requests:
-            self.header_request.set({'proto':proto,'headers':blockheaders})
-        elif proto == self.skeleton_peer: #make sure it's from the originating proto 
-            self.requests[proto].set(blockheaders)
-         
 
-         
 
 
 class Synchronizer(object):
@@ -506,12 +544,21 @@ class Synchronizer(object):
         self.chain = chainservice.chain
         self._protocols = dict()  # proto: chain_difficulty
         self.synctask = None
+        self.syncbody = None
+        self.blockheader_queue = Queue() 
 
     def synctask_exited(self, success=False):
         # note: synctask broadcasts best block
         if success:
             self.force_sync = None
         self.synctask = None
+    
+    def syncbody_exited(self, success=False):
+        # note: synctask broadcasts best block
+        if success:
+            self.force_sync = None
+        self.syncbody = None
+
 
     @property
     def protocols(self):
@@ -568,6 +615,8 @@ class Synchronizer(object):
             log.debug('missing parent for new block', block=t_block)
             if not self.synctask:
                 self.synctask = SyncTask(self, proto, t_block.header.hash, chain_difficulty)
+                if not self.syncbody:
+                  self.syncbody = SyncBody(self, chain_difficulty)
             else:
                 log.debug('already syncing, won\'t start new sync task')
 
@@ -590,14 +639,35 @@ class Synchronizer(object):
         elif chain_difficulty > self.chain.head.chain_difficulty():
             log.debug('sufficient difficulty')
             self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
-
+            if not self.syncbody:
+              self.syncbody = SyncBody(self, chain_difficulty)
+            
+    def receive_newblockhashes(self, proto, newblockhashes):
+        """
+        no way to check if this really an interesting block at this point.
+        might lead to an amplification attack, need to track this proto and judge usefullness
+        """
+        log.debug('received newblockhashes', num=len(newblockhashes), proto=proto)
+        # log.debug('DISABLED')
+        # return
+        newblockhashes = [h.hash for h in newblockhashes if not self.chainservice.knows_block(h.hash)]
+        if (proto not in self.protocols) or (not newblockhashes) or self.synctask:
+            log.debug('discarding', known=bool(not newblockhashes), synctask=bool(self.synctask))
+            return
+        if len(newblockhashes) != 1:
+            log.warn('supporting only one newblockhash', num=len(newblockhashes))
+        if not self.chainservice.is_syncing:
+            blockhash = newblockhashes[0]
+            log.debug('starting synctask for newblockhashes', blockhash=blockhash.encode('hex'))
+            self.synctask = SyncTask(self, proto, blockhash, 0, originator_only=True)
+            self.syncbody = SyncBody(self, chain_difficulty)
 
 
 
     def receive_blockbodies(self, proto, bodies):
         log.debug('blockbodies received', proto=proto, num=len(bodies))
-        if self.synctask:
-            self.synctask.receive_blockbodies(proto, bodies)
+        if self.syncbody:
+            self.syncbody.receive_blockbodies(proto, bodies)
         else:
             log.warn('no synctask, not expecting block bodies')
 

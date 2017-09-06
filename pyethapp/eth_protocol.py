@@ -67,6 +67,7 @@ class ETHProtocol(BaseProtocol):
     name = 'eth'
     version = 62
     idle = True
+    body_idle = True
     max_getblocks_count = 128
     max_getblockheaders_count = 192
 
