@@ -359,9 +359,10 @@ class SyncBody(object):
     blocks_request_timeout = 8.
     max_retries = 5
     retry_delay = 3.
-    def __init__(self, synchronizer, chain_difficulty=0, originator_only=False):
+    def __init__(self, synchronizer, blockhash, chain_difficulty=0, originator_only=False):
         self.synchronizer = synchronizer
         self.chain = synchronizer.chain
+        self.blockhash = blockhash
         self.chainservice = synchronizer.chainservice
         self.originator_only = originator_only
         self.chain_difficulty = chain_difficulty
@@ -464,7 +465,7 @@ class SyncBody(object):
                    
                      self.requests[proto] = proto_deferred
                      blockhashes_batch = [h.hash for h in block_batch]
-                     log_st.debug('requesting blocks', num=len(blockhashes_batch),missing=len(blockbody_batch)-len(blockhashes_batch))
+                     log_st.debug('requesting blocks', num=len(blockhashes_batch),missing=len(batch_header)-len(blockhashes_batch))
                      proto.send_getblockbodies(*blockhashes_batch)
                      self.pending_bodyRequests[proto] = HeaderRequest(block_batch[0].number, block_batch) 
                      proto.body_idle = False 
@@ -517,32 +518,48 @@ class SyncBody(object):
 
                 # add received t_blocks
                 num_fetched += len(bodies)
-                log_st.debug('received block bodies', num=len(bodies), num_fetched=num_fetched,
+                log_st.debug('received block bodies',
+                        num=len(bodies),blockbody=bodies,num_fetched=num_fetched,
                              total=num_blocks, missing=num_blocks - num_fetched)
                 proto_received.body_idle=True                                                                      
                 del self.requests[proto_received]
                 ts = time.time()
                 log_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
-                for body in bodies:
+                index = 0 
+                for h in headers:
                       try:
-                        h = headers.pop(0)
+                        body = bodies[index]
+                        index = index + 1
                         t_block = TransientBlock(h, body.transactions, body.uncles)
                         self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
                       except IndexError as e:
                         log_st.error('headers and bodies mismatch', error=e)
-                        self.exit(success=False)
+                        return self.exit(success=False)
                       self.block_requests_pool.remove(h) 
                 log_st.debug('adding blocks done', took=time.time() - ts)
 
+
+      #          for body in bodies:
+      #                try:
+      #                  h = headers.pop(0)
+      #                  t_block = TransientBlock(h, body.transactions, body.uncles)
+      #                  self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
+      #                except IndexError as e:
+      #                  log_st.error('headers and bodies mismatch', error=e)
+      #                  self.exit(success=False)
+      #                self.block_requests_pool.remove(h) 
+      #          log_st.debug('adding blocks done', took=time.time() - ts)
+
                  # done
         last_block = t_block
-        assert not len(block_batch)
-           # assert last_block.header.hash == self.blockhash
-       # log_st.debug('syncing finished')
+        assert not len(batch_header)
+        #  assert last_block.header.hash == self.blockhash
+        log_st.debug('syncing finished')
         # at this point blocks are not in the chain yet, but in the add_block queue
         if self.chain_difficulty >= self.chain.head.chain_difficulty():
-          self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
-        return True
+         self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
+        self.exit(success = True)
+          #return True
     
     def receive_blockbodies(self, proto, bodies):
         log.debug('block bodies received', proto=proto, num=len(bodies))
@@ -675,7 +692,7 @@ class Synchronizer(object):
             if not self.synctask:
                 self.synctask = SyncTask(self, proto, t_block.header.hash, chain_difficulty)
                 if not self.syncbody:
-                  self.syncbody = SyncBody(self, chain_difficulty)
+                  self.syncbody = SyncBody(self, chain_difficulty, blockhash)
             else:
                 log.debug('already syncing, won\'t start new sync task')
 
@@ -699,7 +716,7 @@ class Synchronizer(object):
             log.debug('sufficient difficulty')
             self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
             if not self.syncbody:
-              self.syncbody = SyncBody(self, chain_difficulty)
+              self.syncbody = SyncBody(self, chain_difficulty, blockhash)
             
     def receive_newblockhashes(self, proto, newblockhashes):
         """
@@ -719,7 +736,7 @@ class Synchronizer(object):
             blockhash = newblockhashes[0]
             log.debug('starting synctask for newblockhashes', blockhash=blockhash.encode('hex'))
             self.synctask = SyncTask(self, proto, blockhash, 0, originator_only=True)
-            self.syncbody = SyncBody(self, chain_difficulty)
+            self.syncbody = SyncBody(self, chain_difficulty, blockhash)
 
 
 
