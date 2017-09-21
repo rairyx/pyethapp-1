@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/rai/.virtualenvs/pyethapp/local/lib/python2.7/site-packages')
 from gevent.event import AsyncResult
 import gevent
 import time
@@ -6,12 +8,14 @@ from ethereum.blocks import BlockHeader
 from ethereum.slogging import get_logger
 import ethereum.utils as utils
 import traceback
-from blinker import signal
+from blinker import Signal
 import Queue as Q
 from gevent.queue import Queue
 
 log = get_logger('eth.sync')
 log_st = get_logger('eth.sync.task')
+log_body = get_logger('eth.bodysync')
+log_body_st = get_logger('eth.bodysync.task')
 
 class HeaderRequest(object):
 
@@ -74,7 +78,6 @@ class SyncTask(object):
    #     self.header_ready=signal('ready')
    #     self.header_ready.connect(self.deliver_header)
         gevent.spawn(self.run)
-      #   gevent.spawn(self.fetch_blocks),
 
     def run(self):
         log_st.info('spawning new synctask')
@@ -127,7 +130,9 @@ class SyncTask(object):
                    log_st.debug('skeleton received %u',len(skeleton),skeleton=skeleton)  
             except gevent.Timeout:
                    log_st.warn('syncing skeleton timed out')
-                 #todo drop originating proto 
+                 #todo drop originating proto
+                   self.skeleton_peer.stop()
+
                    return self.exit(success=False)
             finally:
                 #                    # is also executed 'on the way out' when any other clause of the try statement
@@ -165,7 +170,7 @@ class SyncTask(object):
                 log_st.debug('fetching new skeletons')
              #   self.fetch_blocks(remaining)
                 from0+=len(remaining)
-
+            
 
 
 
@@ -193,11 +198,6 @@ class SyncTask(object):
           
           deferred = AsyncResult()
           self.header_request=deferred 
-          # check if there are idle protocols
-        #  protocols = self.idle_protocols()
-        #  if not protocols:
-        #        log_st.warn('no protocols available')
-        #        return self.exit(success=False)
           
           #check timed out pending requests
           for proto in list(self.pending_headerRequests):
@@ -209,8 +209,8 @@ class SyncTask(object):
                               start=request.start,proto=proto)
                       del self.pending_headerRequests[proto]
                  #     if overtimes> 2 else set it idle try one more time, 
-                      proto.idle = True   
-                 #     proto.stop()
+                 #     proto.idle = True   
+                      proto.stop()
           
           log_st.debug('header task queue size, pending queue size, batch_requestsize',size=self.headertask_queue.qsize(),pending=len(self.pending_headerRequests),batch_request=len(self.batch_requests)) 
           #if self.headertask_queue.qsize == 0 and len(self.pending_headerRequests)==0 and len(self.batch_requests)==0 :
@@ -352,6 +352,7 @@ class SyncTask(object):
         elif proto == self.skeleton_peer: #make sure it's from the originating proto 
             self.requests[proto].set(blockheaders)
          
+
 class SyncBody(object):
 
     max_blocks_per_request = 128
@@ -362,7 +363,7 @@ class SyncBody(object):
     def __init__(self, synchronizer, blockhash, chain_difficulty=0, originator_only=False):
         self.synchronizer = synchronizer
         self.chain = synchronizer.chain
-        self.blockhash = blockhash
+      #  self.blockhash = blockhash
         self.chainservice = synchronizer.chainservice
         self.originator_only = originator_only
         self.chain_difficulty = chain_difficulty
@@ -371,8 +372,10 @@ class SyncBody(object):
         self.pending_bodyRequests = dict() 
         self.requests = dict()  # proto: Event
         self.body_request = None
+        self.fetch_ready= AsyncResult()
         gevent.spawn(self.run)
- 
+   #     gevent.spawn(self.schedule_block_fetch) 
+
     @property
     def protocols(self):
         if self.originator_only:
@@ -381,36 +384,33 @@ class SyncBody(object):
 
     def exit(self, success=False):
         if not success:
-            log_st.warn('body syncing failed')
+            log_body_st.warn('body syncing failed')
         else:
-            log_st.debug('successfully synced')
+            log_body_st.debug('successfully synced')
         self.synchronizer.syncbody_exited(success)
 
 
      
     def run(self):
-        log_st.info('spawning new syncbodytask')
+        log_body_st.info('spawning new syncbodytask')
+
         try:
-            self.fetch_blocks()
+            gevent.spawn(self.schedule_block_fetch)
+            gevent.spawn(self.fetch_blocks)
         except Exception:
             print(traceback.format_exc())
             self.exit(success=False)
 
-    def fetch_blocks(self):
-        # fetch blocks (no parallelism here)
-      #  log_st.debug('fetching blocks', num=len(blockheaders_chain))
-      #  assert blockheaders_chain
-       # blockheaders_chain.reverse()  # height rising order
-        num_blocks = 0
-        num_fetched = 0
-        retry = 0
+
+    def schedule_block_fetch(self):
         batch_header = []
-        log_st.debug('start fetching blocks')
-        #while not self.blockheaders_queue.empty():
+        log_st.debug('start sheduleing blocks')
+        self.synchronizer.blockheader_queue = Queue() 
+        
         while True:
           batch_header= self.synchronizer.blockheader_queue.get()
           num_blocks = len(batch_header)
-          log_st.debug('delivered headers', delivered_heades=batch_header)
+          log_body_st.debug('delivered headers', delivered_heades=batch_header)
           while batch_header: 
             limit = len(batch_header) if len(batch_header) < self.max_blocks_process else self.max_blocks_process
             blockbody_batch = batch_header[:limit]
@@ -420,8 +420,46 @@ class SyncBody(object):
                 self.block_requests_pool.append(header)
                 self.bodytask_queue.put((header.number,header))
             #check if length block_requests_pool is equal to blockhashes_batch
+            
             batch_header = batch_header[limit:]     
-            while True:
+          self.fetch_ready.set() 
+      #    try:
+      #       gevent.spawn(self.fetch_blocks)
+      #    except Exception:
+      #       self.exit(success=False) 
+
+    def fetch_blocks(self):
+        # fetch blocks (no parallelism here)
+      #  log_st.debug('fetching blocks', num=len(blockheaders_chain))
+      #  assert blockheaders_chain
+       # blockheaders_chain.reverse()  # height rising order
+        num_blocks = 0
+        num_fetched = 0
+        retry = 0
+        last_block = None 
+#        batch_header = []
+        #while not self.blockheaders_queue.empty():
+#        self.synchronizer.blockheader_queue = Queue() 
+#        while True:
+#          batch_header= self.synchronizer.blockheader_queue.get()
+#          num_blocks = len(batch_header)
+#          log_body_st.debug('delivered headers', delivered_heades=batch_header)
+#          gevent.sleep(0)
+#          while batch_header: 
+#            limit = len(batch_header) if len(batch_header) < self.max_blocks_process else self.max_blocks_process
+#            blockbody_batch = batch_header[:limit]
+#            for header in blockbody_batch:
+                #check chain order 
+                #self.block_requests_pool[header.hash]= header
+#                self.block_requests_pool.append(header)
+#                self.bodytask_queue.put((header.number,header))
+            #check if length block_requests_pool is equal to blockhashes_batch
+#            batch_header = batch_header[limit:]     
+
+        while True:
+          try:
+                result = self.fetch_ready.get()
+                log_st.debug('start fetching blocks')
                 deferred = AsyncResult()
                 self.body_request=deferred 
               
@@ -432,17 +470,17 @@ class SyncBody(object):
                       if request.start >= 0:
                           for h in request.headers:
                               self.bodytask_queue.put((h.number,h))
-                          log_st.debug('timeouted request',
+                          log_body_st.debug('timeouted request',
                                   start=request.start,proto=proto)
                           del self.pending_bodyRequests[proto]
                      #     if overtimes> 2 else set it idle try one more time, 
-                          proto.body_idle = True   
-                     #     proto.stop()
+                     #     proto.body_idle = True   
+                          proto.stop()
               
              #   log_st.debug('header task queue size, pending queue size, batch_requestsize',size=self.bodytask_queue.qsize(),pending=len(self.pending_blockRequests),batch_request=len(self.block_requests_pool)) 
               #if self.headertask_queue.qsize == 0 and len(self.pending_headerRequests)==0 and len(self.batch_requests)==0 :
                 if len(self.block_requests_pool) == 0:
-                   log_st.debug('block body fetching completed!')
+                   log_body_st.debug('block body fetching completed!')
                   # return True
                    break
                
@@ -450,14 +488,14 @@ class SyncBody(object):
                 task_empty = False
                 pending=len(self.pending_bodyRequests)
                 for proto in self.body_idle_protocols():
-                   #assert proto not in self.requests
+               #    assert proto not in self.requests
                    if proto.is_stopped:
                         continue
                    proto_deferred = AsyncResult()
                    # check if it's finished
                    block_batch=[]
                    if not self.bodytask_queue.empty():
-                     log_st.debug('pending body queue size', pending=
+                     log_body_st.debug('pending body queue size', pending=
                              self.bodytask_queue.qsize() )
                      while len(block_batch)<self.max_blocks_per_request and not self.bodytask_queue.empty():
                        blockheader=self.bodytask_queue.get()[1]
@@ -465,7 +503,8 @@ class SyncBody(object):
                    
                      self.requests[proto] = proto_deferred
                      blockhashes_batch = [h.hash for h in block_batch]
-                     log_st.debug('requesting blocks', num=len(blockhashes_batch),missing=len(batch_header)-len(blockhashes_batch))
+                     log_body_st.debug('requesting blocks',
+                             num=len(blockhashes_batch),missing = self.bodytask_queue.qsize()-len(blockhashes_batch))
                      proto.send_getblockbodies(*blockhashes_batch)
                      self.pending_bodyRequests[proto] = HeaderRequest(block_batch[0].number, block_batch) 
                      proto.body_idle = False 
@@ -477,7 +516,7 @@ class SyncBody(object):
               # check if there are protos available for header fetching 
               #if not fetching and not self.headertask_queue.empty() and pending == len(self.pending_headerRequests):
                 if not fetching and not task_empty:
-                     log_st.warn('no protocols available')
+                     log_body_st.warn('no protocols available')
                      return self.exit(success=False) 
                 elif task_empty and pending==len(self.pending_bodyRequests):
                      continue
@@ -486,14 +525,14 @@ class SyncBody(object):
                       bodies = deferred.get(timeout=self.blocks_request_timeout)['blocks']
                    #   log_st.debug('headers batch received from proto', header=header)
                 except gevent.Timeout:
-                      log_st.warn('syncing batch hashchain timed out')
+                      log_body_st.warn('syncing batch block body timed out')
                       retry += 1
                       if retry >= self.max_retries:
-                        log_st.warn('headers sync failed with all peers',
+                        log_body_st.warn('headers sync failed with all peers',
                                 num_protos=len(self.body_idle_protocols()))
                         return self.exit(success=False)
                       else:
-                        log_st.info('headers sync failed with peers, retry', retry=retry)
+                        log_body_st.info('headers sync failed with peers, retry', retry=retry)
                         gevent.sleep(self.retry_delay)
                       continue
                 finally:
@@ -504,7 +543,7 @@ class SyncBody(object):
                 if proto_received not in self.pending_bodyRequests:
                        continue
                 headers = self.pending_bodyRequests[proto_received].headers 
-                log_st.info('received body headers',
+                log_body_st.info('received body headers',
                         headernum=self.pending_bodyRequests[proto_received].start,
                         bodyrequest=self.pending_bodyRequests[proto_received].headers)
                 del self.pending_bodyRequests[proto_received] 
@@ -518,13 +557,13 @@ class SyncBody(object):
 
                 # add received t_blocks
                 num_fetched += len(bodies)
-                log_st.debug('received block bodies',
+                log_body_st.debug('received block bodies',
                         num=len(bodies),blockbody=bodies,num_fetched=num_fetched,
                              total=num_blocks, missing=num_blocks - num_fetched)
                 proto_received.body_idle=True                                                                      
                 del self.requests[proto_received]
                 ts = time.time()
-                log_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
+                log_body_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
                 index = 0 
                 for h in headers:
                       try:
@@ -533,28 +572,33 @@ class SyncBody(object):
                         t_block = TransientBlock(h, body.transactions, body.uncles)
                         self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
                       except IndexError as e:
-                        log_st.error('headers and bodies mismatch', error=e)
+                        log_body_st.error('headers and bodies mismatch', error=e)
                         return self.exit(success=False)
                       self.block_requests_pool.remove(h) 
-                log_st.debug('adding blocks done', took=time.time() - ts)
+       
+                log_body_st.debug('adding blocks done', took=time.time() - ts)
+                
+          except Exception as ex:
+              log_body_st.error(error = ex)
 
+                
 
-      #          for body in bodies:
-      #                try:
-      #                  h = headers.pop(0)
-      #                  t_block = TransientBlock(h, body.transactions, body.uncles)
-      #                  self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
-      #                except IndexError as e:
-      #                  log_st.error('headers and bodies mismatch', error=e)
-      #                  self.exit(success=False)
-      #                self.block_requests_pool.remove(h) 
-      #          log_st.debug('adding blocks done', took=time.time() - ts)
+        #        for body in bodies:
+        #              try:
+        #                h = headers.pop(0)
+        #                t_block = TransientBlock(h, body.transactions, body.uncles)
+        #                self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
+        #                self.block_requests_pool.remove(h) 
+        #              except IndexError as e:
+        #                log_st.error('headers and bodies mismatch', error=e)
+        #                self.exit(success=False)
+        #        log_st.debug('adding blocks done', took=time.time() - ts)
 
                  # done
         last_block = t_block
-        assert not len(batch_header)
+      #  assert not len(batch_header)
         #  assert last_block.header.hash == self.blockhash
-        log_st.debug('syncing finished')
+        log_body_st.debug('syncing finished')
         # at this point blocks are not in the chain yet, but in the add_block queue
         if self.chain_difficulty >= self.chain.head.chain_difficulty():
          self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
@@ -628,12 +672,16 @@ class Synchronizer(object):
         if success:
             self.force_sync = None
         self.synctask = None
-    
+        if self.syncbody:
+           self.syncbody = None 
+
     def syncbody_exited(self, success=False):
         # note: synctask broadcasts best block
         if success:
             self.force_sync = None
         self.syncbody = None
+        if self.synctask:
+            self.synctask = None
 
 
     @property
@@ -692,7 +740,7 @@ class Synchronizer(object):
             if not self.synctask:
                 self.synctask = SyncTask(self, proto, t_block.header.hash, chain_difficulty)
                 if not self.syncbody:
-                  self.syncbody = SyncBody(self, chain_difficulty, blockhash)
+                  self.syncbody = SyncBody(self, chain_difficulty)
             else:
                 log.debug('already syncing, won\'t start new sync task')
 
@@ -716,7 +764,7 @@ class Synchronizer(object):
             log.debug('sufficient difficulty')
             self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
             if not self.syncbody:
-              self.syncbody = SyncBody(self, chain_difficulty, blockhash)
+              self.syncbody = SyncBody(self, chain_difficulty)
             
     def receive_newblockhashes(self, proto, newblockhashes):
         """
