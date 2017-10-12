@@ -1,8 +1,8 @@
-from pyethapp.eth_protocol import ETHProtocol, TransientBlock
+from pyethapp.eth_protocol import ETHProtocol, TransientBlockBody
 from devp2p.service import WiredService
 from devp2p.protocol import BaseProtocol
 from devp2p.app import BaseApp
-from ethereum import tester
+from ethereum.tools import tester
 import rlp
 
 
@@ -18,7 +18,7 @@ def setup():
     peer = PeerMock()
     proto = ETHProtocol(peer, WiredService(BaseApp()))
     proto.service.app.config['eth'] = dict(network_id=1337)
-    chain = tester.state()
+    chain = tester.Chain()
     cb_data = []
 
     def cb(proto, **data):
@@ -42,11 +42,11 @@ def test_basics():
 
 def test_status():
     peer, proto, chain, cb_data, cb = setup()
-    genesis = head = chain.blocks[-1]
+    genesis = head = chain.chain.get_descendants(chain.chain.get_block_by_number(0))[-1]
 
     # test status
     proto.send_status(
-        chain_difficulty=head.chain_difficulty(),
+        chain_difficulty=chain.chain.get_score(head),
         chain_head_hash=head.hash,
         genesis_hash=genesis.hash
     )
@@ -57,7 +57,7 @@ def test_status():
     _p, _d = cb_data.pop()
     assert _p == proto
     assert isinstance(_d, dict)
-    assert _d['chain_difficulty'] == head.chain_difficulty()
+    assert _d['chain_difficulty'] == chain.chain.get_score(head)
     print _d
     assert _d['chain_head_hash'] == head.hash
     assert _d['genesis_hash'] == genesis.hash
@@ -69,27 +69,28 @@ def test_blocks():
     peer, proto, chain, cb_data, cb = setup()
 
     # test blocks
-    chain.mine(n=2)
-    assert len(chain.blocks) == 3
-    payload = [rlp.encode(b) for b in chain.blocks]
-    proto.send_blocks(*payload)
+    chain.mine(number_of_blocks=2)
+    assert chain.block.number == 3
+    # monkey patch to make "blocks" attribute available
+    chain.blocks = chain.chain.get_descendants(chain.chain.get_block_by_number(0))
+    proto.send_blockbodies(*chain.blocks)
     packet = peer.packets.pop()
     assert len(rlp.decode(packet.payload)) == 3
 
     def list_cb(proto, blocks):  # different cb, as we expect a list of blocks
         cb_data.append((proto, blocks))
 
-    proto.receive_blocks_callbacks.append(list_cb)
-    proto._receive_blocks(packet)
+    proto.receive_blockbodies_callbacks.append(list_cb)
+    proto._receive_blockbodies(packet)
 
     _p, blocks = cb_data.pop()
-    assert isinstance(blocks, list)
+    assert isinstance(blocks, tuple)
     for block in blocks:
-        assert isinstance(block, TransientBlock)
-        assert isinstance(block.transaction_list, tuple)
+        assert isinstance(block, TransientBlockBody)
+        assert isinstance(block.transactions, tuple)
         assert isinstance(block.uncles, tuple)
         # assert that transactions and uncles have not been decoded
-        assert len(block.transaction_list) == 0
+        assert len(block.transactions) == 0
         assert len(block.uncles) == 0
 
     # newblock
@@ -104,8 +105,8 @@ def test_blocks():
     assert 'chain_difficulty' in _d
     assert _d['chain_difficulty'] == approximate_difficulty
     assert _d['block'].header == chain.blocks[-1].header
-    assert isinstance(_d['block'].transaction_list, tuple)
+    assert isinstance(_d['block'].transactions, tuple)
     assert isinstance(_d['block'].uncles, tuple)
     # assert that transactions and uncles have not been decoded
-    assert len(_d['block'].transaction_list) == 0
+    assert len(_d['block'].transactions) == 0
     assert len(_d['block'].uncles) == 0

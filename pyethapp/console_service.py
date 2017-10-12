@@ -14,11 +14,12 @@ import gevent
 from gevent.event import Event
 import IPython
 import IPython.core.shellapp
-from IPython.lib.inputhook import inputhook_manager, stdin_ready
 from devp2p.service import BaseService
-from ethereum import processblock
 from ethereum.exceptions import InvalidTransaction
+from ethereum.pow.consensus import initialize
 from ethereum.slogging import getLogger
+from ethereum.messages import apply_transaction
+from ethereum.state import State
 from ethereum.transactions import Transaction
 from ethereum.utils import denoms, normalize_address
 
@@ -31,43 +32,13 @@ ENTER_CONSOLE_TIMEOUT = 3
 GUI_GEVENT = 'gevent'
 
 
-def inputhook_gevent():
-    while not stdin_ready():
+def inputhook_gevent(context):
+    while not context.input_is_ready():
         gevent.sleep(0.05)
     return 0
 
 
-@inputhook_manager.register('gevent')
-class GeventInputHook(object):
-
-    def __init__(self, manager):
-        self.manager = manager
-
-    def enable(self, app=None):
-        """Enable event loop integration with gevent.
-        Parameters
-        ----------
-        app : ignored
-            Ignored, it's only a placeholder to keep the call signature of all
-            gui activation methods consistent, which simplifies the logic of
-            supporting magics.
-        Notes
-        -----
-        This methods sets the PyOS_InputHook for gevent, which allows
-        gevent greenlets to run in the background while interactively using
-        IPython.
-        """
-        self.manager.set_inputhook(inputhook_gevent)
-        self._current_gui = GUI_GEVENT
-        return app
-
-    def disable(self):
-        """Disable event loop integration with gevent.
-        This merely sets PyOS_InputHook to NULL.
-        """
-        self.manager.clear_inputhook()
-
-
+IPython.terminal.pt_inputhooks.register('gevent', inputhook_gevent)
 # ipython needs to accept "--gui gevent" option
 IPython.core.shellapp.InteractiveShellApp.gui.values += ('gevent',)
 
@@ -183,7 +154,7 @@ class Console(BaseService):
 
             @property
             def pending(this):
-                return this.chain.head_candidate
+                return this.chainservice.head_candidate
 
             head_candidate = pending
 
@@ -195,7 +166,8 @@ class Console(BaseService):
                          startgas=25000, gasprice=60 * denoms.shannon):
                 sender = normalize_address(sender or this.coinbase)
                 to = normalize_address(to, allow_blank=True)
-                nonce = this.pending.get_nonce(sender)
+                state = State(this.head_candidate.state_root, this.chain.env)
+                nonce = state.get_nonce(sender)
                 tx = Transaction(nonce, gasprice, startgas, to, value, data)
                 this.app.services.accounts.sign_tx(sender, tx)
                 assert tx.sender == sender
@@ -208,23 +180,28 @@ class Console(BaseService):
                 to = normalize_address(to, allow_blank=True)
                 block = this.head_candidate
                 state_root_before = block.state_root
-                assert block.has_parent()
+                assert block.prevhash == this.chain.head_hash
                 # rebuild block state before finalization
-                parent = block.get_parent()
-                test_block = block.init_from_parent(parent, block.coinbase,
-                                                    timestamp=block.timestamp)
-                for tx in block.get_transactions():
-                    success, output = processblock.apply_transaction(test_block, tx)
+                test_state = this.chain.mk_poststate_of_blockhash(block.prevhash)
+                initialize(test_state, block)
+                for tx in block.transactions:
+                    success, _ = apply_transaction(test_state, tx)
                     assert success
 
+                # Need this because otherwise the Transaction.network_id
+                # @property returns 0, which causes the tx to fail validation.
+                class MockedTx(Transaction):
+                    network_id = None
+
                 # apply transaction
-                nonce = test_block.get_nonce(sender)
-                tx = Transaction(nonce, gasprice, startgas, to, value, data)
+                nonce = test_state.get_nonce(sender)
+                tx = MockedTx(nonce, gasprice, startgas, to, value, data)
                 tx.sender = sender
 
                 try:
-                    success, output = processblock.apply_transaction(test_block, tx)
-                except InvalidTransaction:
+                    success, output = apply_transaction(test_state, tx)
+                except InvalidTransaction as e:
+                    log.debug("error applying tx in Eth.call", exc=e)
                     success = False
 
                 assert block.state_root == state_root_before
@@ -236,7 +213,7 @@ class Console(BaseService):
 
             def find_transaction(this, tx):
                 try:
-                    t, blk, idx = this.chain.index.get_transaction(tx.hash)
+                    t, blk, idx = this.chain.get_transaction(tx.hash)
                 except:
                     return {}
                 return dict(tx=t, block=blk, index=idx)
@@ -248,10 +225,10 @@ class Console(BaseService):
                 from eth_protocol import TransientBlock
                 import rlp
                 l = rlp.decode_lazy(rlp_data)
-                return TransientBlock.init_from_rlp(l).to_block(this.chain.blockchain)
+                return TransientBlock.init_from_rlp(l).to_block()
 
         try:
-            from ethereum._solidity import solc_wrapper
+            from ethereum.tools._solidity import solc_wrapper
         except ImportError:
             solc_wrapper = None
             pass

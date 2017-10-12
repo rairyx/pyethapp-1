@@ -1,49 +1,42 @@
 # -*- coding: utf8 -*-
+import copy
 import time
+import statistics
 from collections import deque
 
-import eth_protocol
 import gevent
 import gevent.lock
+from gevent.queue import Queue
+from gevent.event import AsyncResult
+
 import rlp
-import statistics
+
 from devp2p.protocol import BaseProtocol
 from devp2p.service import WiredService
-from ethereum.blocks import Block, VerificationFailed
-from ethereum.chain import Chain
+
+from ethereum.block import Block
+from ethereum.meta import make_head_candidate
+from ethereum.pow.chain import Chain
+from ethereum.pow.consensus import initialize, check_pow
 from ethereum.config import Env
-from ethereum.exceptions import InvalidTransaction, InvalidNonce, InsufficientBalance, InsufficientStartGas
+from ethereum.genesis_helpers import mk_genesis_data
 from ethereum import config as ethereum_config
-from ethereum import processblock
-from ethereum.processblock import validate_transaction
-from ethereum.refcount_db import RefcountDB
+from ethereum.messages import apply_transaction, validate_transaction
+from ethereum.transaction_queue import TransactionQueue
+from ethereum.experimental.refcount_db import RefcountDB
 from ethereum.slogging import get_logger
-from ethereum.blocks import get_block_header
+from ethereum.exceptions import InvalidTransaction, InvalidNonce, \
+    InsufficientBalance, InsufficientStartGas, VerificationFailed
 from ethereum.transactions import Transaction
-from ethereum.utils import sha3
-from gevent.queue import Queue
-from rlp.utils import encode_hex
+from ethereum.utils import encode_hex
+
 from synchronizer import Synchronizer
+import eth_protocol
 
 from pyethapp import sentry
 from pyethapp.dao import is_dao_challenge, build_dao_header
 
-
 log = get_logger('eth.chainservice')
-
-
-# patch to get context switches between tx replay
-processblock_apply_transaction = processblock.apply_transaction
-
-
-def apply_transaction(block, tx):
-    log.debug('apply_transaction ctx switch', tx=tx.hash.encode('hex')[:8])
-    gevent.sleep(0.001)
-    return processblock_apply_transaction(block, tx)
-
-
-def rlp_hash_hex(data):
-    return encode_hex(sha3(rlp.encode(data)))
 
 
 class DuplicatesFilter(object):
@@ -67,19 +60,36 @@ class DuplicatesFilter(object):
         return v in self.filter
 
 
-def update_watcher(chainservice):
-    timeout = 180
-    d = dict(head=chainservice.chain.head)
+class DAOChallenger(object):
 
-    def up(b):
-        log.debug('watcher head updated')
-        d['head'] = b
-    chainservice.on_new_head_cbs.append(lambda b: up(b))
+    request_timeout = 8.
 
-    while True:
-        last = d['head']
-        gevent.sleep(timeout)
-        assert last != d['head'], 'no updates for %d secs' % timeout
+    def __init__(self, chainservice, proto):
+        self.chainservice = chainservice
+        self.config = chainservice.config['eth']['block']
+        self.proto = proto
+        self.deferred = None
+        gevent.spawn(self.run)
+
+    def run(self):
+        self.deferred = AsyncResult()
+        self.proto.send_getblockheaders(self.config['DAO_FORK_BLKNUM'], 1, 0)
+        try:
+            dao_headers = self.deferred.get(block=True, timeout=self.request_timeout)
+            log.debug("received DAO challenge answer", proto=self.proto, answer=dao_headers)
+            result = len(dao_headers) == 1 and \
+                    dao_headers[0].hash == self.config['DAO_FORK_BLKHASH'] and \
+                    dao_headers[0].extra_data == self.config['DAO_FORK_BLKEXTRA']
+            self.chainservice.on_dao_challenge_answer(self.proto, result)
+        except gevent.Timeout:
+            log.debug('challenge dao timed out', proto=self.proto)
+            self.chainservice.on_dao_challenge_answer(self.proto, False)
+
+    def receive_blockheaders(self, proto, blockheaders):
+        log.debug('blockheaders received', proto=proto, num=len(blockheaders))
+        if proto != self.proto:
+            return
+        self.deferred.set(blockheaders)
 
 
 class ChainService(WiredService):
@@ -103,7 +113,6 @@ class ChainService(WiredService):
     synchronizer = None
     config = None
     block_queue_size = 1024
-    transaction_queue_size = 1024
     processed_gas = 0
     processed_elapsed = 0
 
@@ -146,23 +155,37 @@ class ChainService(WiredService):
         log.info('initializing chain')
         coinbase = app.services.accounts.coinbase
         env = Env(self.db, sce['block'])
-        self.chain = Chain(env, new_head_cb=self._on_new_head, coinbase=coinbase)
+
+        genesis_data = sce.get('genesis_data', {})
+        if not genesis_data:
+            genesis_data = mk_genesis_data(env)
+        self.chain = Chain(
+            env=env, genesis=genesis_data, coinbase=coinbase,
+            new_head_cb=self._on_new_head)
+        header = self.chain.state.prev_headers[0]
 
         log.info('chain at', number=self.chain.head.number)
         if 'genesis_hash' in sce:
-            assert sce['genesis_hash'] == self.chain.genesis.hex_hash(), \
+            assert sce['genesis_hash'] == self.chain.genesis.hex_hash, \
                 "Genesis hash mismatch.\n  Expected: %s\n  Got: %s" % (
-                    sce['genesis_hash'], self.chain.genesis.hex_hash())
+                    sce['genesis_hash'], self.chain.genesis.hex_hash)
 
+        self.dao_challenges = dict()
         self.synchronizer = Synchronizer(self, force_sync=None)
 
         self.block_queue = Queue(maxsize=self.block_queue_size)
-        self.transaction_queue = Queue(maxsize=self.transaction_queue_size)
+        # When the transaction_queue is modified, we must set
+        # self._head_candidate_needs_updating to True in order to force the
+        # head candidate to be updated.
+        self.transaction_queue = TransactionQueue()
+        self._head_candidate_needs_updating = True
+        # Initialize a new head candidate.
+        _ = self.head_candidate
+        self.min_gasprice = 20 * 10**9 # TODO: better be an option to validator service?
         self.add_blocks_lock = False
         self.add_transaction_lock = gevent.lock.Semaphore()
         self.broadcast_filter = DuplicatesFilter()
         self.on_new_head_cbs = []
-        self.on_new_head_candidate_cbs = []
         self.newblock_processing_times = deque(maxlen=1000)
 
     @property
@@ -173,20 +196,40 @@ class ChainService(WiredService):
     def is_mining(self):
         if 'pow' in self.app.services:
             return self.app.services.pow.active
+        if 'validator' in self.app.services:
+            return self.app.services.validator.active
         return False
+
+    # TODO: Move to pyethereum
+    def get_receipts(self, block):
+        # Receipts are no longer stored in the database, so need to generate
+        # them on the fly here.
+        temp_state = self.chain.mk_poststate_of_blockhash(block.header.prevhash)
+        initialize(temp_state, block)
+        for tx in block.transactions:
+            apply_transaction(temp_state, tx)
+        return temp_state.receipts
 
     def _on_new_head(self, block):
         log.debug('new head cbs', num=len(self.on_new_head_cbs))
+        self.transaction_queue = self.transaction_queue.diff(
+            block.transactions)
+        self._head_candidate_needs_updating = True
         for cb in self.on_new_head_cbs:
             cb(block)
-        self._on_new_head_candidate()  # we implicitly have a new head_candidate
 
-    def _on_new_head_candidate(self):
-        # DEBUG('new head candidate cbs', len(self.on_new_head_candidate_cbs))
-        for cb in self.on_new_head_candidate_cbs:
-            cb(self.chain.head_candidate)
+    @property
+    def head_candidate(self):
+        if self._head_candidate_needs_updating:
+            self._head_candidate_needs_updating = False
+            # Make a copy of self.transaction_queue because
+            # make_head_candidate modifies it.
+            txqueue = copy.deepcopy(self.transaction_queue)
+            self._head_candidate, self._head_candidate_state = make_head_candidate(
+                self.chain, txqueue, timestamp=int(time.time()))
+        return self._head_candidate
 
-    def add_transaction(self, tx, origin=None, force_broadcast=False):
+    def add_transaction(self, tx, origin=None, force_broadcast=False, force=False):
         if self.is_syncing:
             if force_broadcast:
                 assert origin is None  # only allowed for local txs
@@ -203,7 +246,10 @@ class ChainService(WiredService):
 
         # validate transaction
         try:
-            validate_transaction(self.chain.head_candidate, tx)
+            # Transaction validation for broadcasting. Transaction is validated
+            # against the current head candidate.
+            validate_transaction(self._head_candidate_state, tx)
+
             log.debug('valid tx, broadcasting')
             self.broadcast_transaction(tx, origin=origin)  # asap
         except InvalidTransaction as e:
@@ -215,12 +261,16 @@ class ChainService(WiredService):
                 log.debug('discarding tx', syncing=self.is_syncing, mining=self.is_mining)
                 return
 
-        self.add_transaction_lock.acquire()
-        success = self.chain.add_transaction(tx)
-        self.add_transaction_lock.release()
-        if success:
-            self._on_new_head_candidate()
-        return success
+        if tx.gasprice >= self.min_gasprice:
+            self.add_transaction_lock.acquire()
+            self.transaction_queue.add_transaction(tx, force=force)
+            self._head_candidate_needs_updating = True
+            self.add_transaction_lock.release()
+        else:
+            log.info("too low gasprice, ignore", tx=encode_hex(tx.hash)[:8], gasprice=tx.gasprice)
+
+    def check_header(self, header):
+        return check_pow(self.chain.state, header)
 
     def add_block(self, t_block, proto):
         "adds a block to the block_queue and spawns _add_block if not running"
@@ -232,15 +282,19 @@ class ChainService(WiredService):
     def add_mined_block(self, block):
         log.debug('adding mined block', block=block)
         assert isinstance(block, Block)
-        assert block.header.check_pow()
         if self.chain.add_block(block):
             log.debug('added', block=block, ts=time.time())
             assert block == self.chain.head
-            self.broadcast_newblock(block, chain_difficulty=block.chain_difficulty())
+            self.transaction_queue = self.transaction_queue.diff(block.transactions)
+            self._head_candidate_needs_updating = True
+            self.broadcast_newblock(block, chain_difficulty=self.chain.get_score(block))
+            return True
+        log.debug('failed to add', block=block, ts=time.time())
+        return False
 
     def knows_block(self, block_hash):
         "if block is in chain or in queue"
-        if block_hash in self.chain:
+        if self.chain.has_blockhash(block_hash):
             return True
         # check if queued or processed
         for i in range(len(self.block_queue.queue)):
@@ -259,23 +313,17 @@ class ChainService(WiredService):
                 gevent.sleep(0.001)
 
                 t_block, proto = self.block_queue.peek()  # peek: knows_block while processing
-                if t_block.header.hash in self.chain:
+                if self.chain.has_blockhash(t_block.header.hash):
                     log.warn('known block', block=t_block)
                     self.block_queue.get()
                     continue
-                if t_block.header.prevhash not in self.chain:
+                if not self.chain.has_blockhash(t_block.header.prevhash):
                     log.warn('missing parent', block=t_block, head=self.chain.head)
-                    self.block_queue.get()
-                    continue
-                # FIXME, this is also done in validation and in synchronizer for new_blocks
-                if not t_block.header.check_pow():
-                    log.warn('invalid pow', block=t_block, FIXME='ban node')
-                    sentry.warn_invalid(t_block, 'InvalidBlockNonce')
                     self.block_queue.get()
                     continue
                 try:  # deserialize
                     st = time.time()
-                    block = t_block.to_block(env=self.chain.env)
+                    block = t_block.to_block()
                     elapsed = time.time() - st
                     log.debug('deserialized', elapsed='%.4fs' % elapsed, ts=time.time(),
                               gas_used=block.gas_used, gpsec=self.gpsec(block.gas_used, elapsed))
@@ -297,7 +345,7 @@ class ChainService(WiredService):
 
                 # All checks passed
                 log.debug('adding', block=block, ts=time.time())
-                if self.chain.add_block(block, forward_pending_transactions=self.is_mining):
+                if self.chain.add_block(block):
                     now = time.time()
                     log.info('added', block=block, txs=block.transaction_count,
                              gas_used=block.gas_used)
@@ -310,6 +358,8 @@ class ChainService(WiredService):
                         min_ = min(self.newblock_processing_times)
                         log.info('processing time', last=total, avg=avg, max=max_, min=min_,
                                  median=med)
+                    if self.is_mining:
+                        self.transaction_queue = self.transaction_queue.diff(block.transactions)
                 else:
                     log.warn('could not add', block=block)
 
@@ -326,8 +376,8 @@ class ChainService(WiredService):
 
     def broadcast_newblock(self, block, chain_difficulty=None, origin=None):
         if not chain_difficulty:
-            assert block.hash in self.chain
-            chain_difficulty = block.chain_difficulty()
+            assert self.chain.has_blockhash(block.hash)
+            chain_difficulty = self.chain.get_score(block)
         assert isinstance(block, (eth_protocol.TransientBlock, Block))
         if self.broadcast_filter.update(block.header.hash):
             log.debug('broadcasting newblock', origin=origin)
@@ -365,7 +415,7 @@ class ChainService(WiredService):
 
         # send status
         head = self.chain.head
-        proto.send_status(chain_difficulty=head.chain_difficulty(), chain_head_hash=head.hash,
+        proto.send_status(chain_difficulty=self.chain.get_score(head), chain_head_hash=head.hash,
                           genesis_hash=self.chain.genesis.hash)
 
     def on_wire_protocol_stop(self, proto):
@@ -377,9 +427,20 @@ class ChainService(WiredService):
                           genesis_hash):
         log.debug('----------------------------------')
         log.debug('status received', proto=proto, eth_version=eth_version)
-        assert eth_version == proto.version, (eth_version, proto.version)
+
+        if eth_version != proto.version:
+            if ('eth', proto.version) in proto.peer.remote_capabilities:
+                # if remote peer is capable of our version, keep the connection
+                # even the peer tried a different version
+                pass
+            else:
+                log.debug("no capable protocol to use, disconnect",
+                          proto=proto, eth_version=eth_version)
+                proto.send_disconnect(proto.disconnect.reason.useless_peer)
+                return
+
         if network_id != self.config['eth'].get('network_id', proto.network_id):
-            log.warn("invalid network id", remote_network_id=network_id,
+            log.debug("invalid network id", remote_network_id=network_id,
                      expected_network_id=self.config['eth'].get('network_id', proto.network_id))
             raise eth_protocol.ETHProtocolError('wrong network_id')
 
@@ -388,14 +449,26 @@ class ChainService(WiredService):
             log.warn("invalid genesis hash", remote_id=proto, genesis=genesis_hash.encode('hex'))
             raise eth_protocol.ETHProtocolError('wrong genesis block')
 
-        # request chain
-        self.synchronizer.receive_status(proto, chain_head_hash, chain_difficulty)
+        # initiate DAO challenge
+        self.dao_challenges[proto] = (DAOChallenger(self, proto), chain_head_hash, chain_difficulty)
 
-        # send transactions
-        transactions = self.chain.get_transactions()
-        if transactions:
-            log.debug("sending transactions", remote_id=proto)
-            proto.send_transactions(*transactions)
+    def on_dao_challenge_answer(self, proto, result):
+        if result:
+            log.debug("DAO challenge passed")
+            _, chain_head_hash, chain_difficulty = self.dao_challenges[proto]
+
+            # request chain
+            self.synchronizer.receive_status(proto, chain_head_hash, chain_difficulty)
+            # send transactions
+            transactions = self.transaction_queue.peek()
+            if transactions:
+                log.debug("sending transactions", remote_id=proto)
+                proto.send_transactions(*transactions)
+        else:
+            log.debug("peer failed to answer DAO challenge, stop.", proto=proto)
+            if proto.peer:
+                proto.peer.stop()
+        del self.dao_challenges[proto]
 
     # transactions
 
@@ -436,10 +509,10 @@ class ChainService(WiredService):
                 proto.send_blockheaders(*headers)
                 return
             try:
-                origin_hash = self.chain.index.get_block_by_number(hash_or_number[1])
+                origin_hash = self.chain.get_blockhash_by_number(hash_or_number[1])
             except KeyError:
                 origin_hash = b''
-        if not origin_hash or origin_hash not in self.chain:
+        if not origin_hash or self.chain.has_blockhash(origin_hash):
             log.debug("unknown block")
             proto.send_blockheaders(*[])
             return
@@ -449,7 +522,12 @@ class ChainService(WiredService):
             if not origin_hash:
                 break
             try:
-                origin = get_block_header(self.chain.db, origin_hash)
+                block_rlp = self.chain.db.get(last)
+                if block_rlp == 'GENESIS':
+                    #last = self.chain.genesis.header.prevhash
+                    break
+                else:
+                    last = rlp.decode_lazy(block_rlp)[0][0]  # [head][prevhash]
             except KeyError:
                 break
             assert origin
@@ -459,15 +537,15 @@ class ChainService(WiredService):
                 if reverse:
                     for i in xrange(skip+1):
                         try:
-                            header = get_block_header(self.chain.db, origin_hash)
+                            header = self.chain.get_block(origin_hash)
                             origin_hash = header.prevhash
                         except KeyError:
                             unknown = True
                             break
                 else:
-                    origin_hash = self.chain.index.get_block_by_number(origin.number + skip + 1)
+                    origin_hash = self.chain.get_blockhash_by_number(origin.number + skip + 1)
                     try:
-                        header = get_block_header(self.chain.db, origin_hash)
+                        header = self.chain.get_block(origin_hash)
                         if self.chain.get_blockhashes_from_hash(header.hash, skip+1)[skip] == origin_hash:
                             origin_hash = header.hash
                         else:
@@ -478,13 +556,13 @@ class ChainService(WiredService):
                 if reverse:
                     if origin.number >= (skip+1):
                         number = origin.number - (skip + 1)
-                        origin_hash = self.chain.index.get_block_by_number(number)
+                        origin_hash = self.chain.get_blockhash_by_number(number)
                     else:
                         unknown = True
                 else:
                     number = origin.number + skip + 1
                     try:
-                        origin_hash = self.chain.index.get_block_by_number(number)
+                        origin_hash = self.chain.get_blockhash_by_number(number)
                     except KeyError:
                         unknown = True
 
@@ -498,7 +576,11 @@ class ChainService(WiredService):
                       first=encode_hex(blockheaders[0].hash), last=encode_hex(blockheaders[-1].hash))
         else:
             log.debug("recv 0 remote block headers, signifying genesis block")
-        self.synchronizer.receive_blockheaders(proto, blockheaders)
+
+        if proto in self.dao_challenges:
+            self.dao_challenges[proto][0].receive_blockheaders(proto, blockheaders)
+        else:
+            self.synchronizer.receive_blockheaders(proto, blockheaders)
 
     # blocks ################
 

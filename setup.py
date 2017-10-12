@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import codecs
+import os
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -45,7 +46,17 @@ with open('requirements.txt') as requirements_file:
 
 INSTALL_REQUIRES = list(set(INSTALL_REQUIRES))
 
-# *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
+DEPENDENCY_LINKS = []
+if os.environ.get("USE_PYETHEREUM_DEVELOP"):
+    # Force installation of specific commits of devp2p and pyethereum.
+    devp2p_ref='525e15a9967da3174ec9e4e367b5adfb76138bb4'
+    pyethereum_ref='8edc5954fb8b6697cb7c9d7d85ed71e5f6d74e0f'
+    DEPENDENCY_LINKS = [
+        'http://github.com/ethereum/pydevp2p/tarball/%s#egg=devp2p-9.99.9' % devp2p_ref,
+        'http://github.com/ethereum/pyethereum/tarball/%s#egg=ethereum-9.99.9' % pyethereum_ref,
+        ]
+
+# *IMPORTANT*: Don't manually change the version here. Use the 'bump2version' utility.
 # see: https://github.com/ethereum/pyethapp/wiki/Development:-Versions-and-Releases
 version = '1.5.0'
 
@@ -76,8 +87,11 @@ setup(
     ],
     cmdclass={'test': PyTest},
     install_requires=INSTALL_REQUIRES,
+    dependency_links=DEPENDENCY_LINKS,
     tests_require=[
         'ethereum-serpent>=1.8.1',
+        'mock==2.0.0',
+        'pytest-mock==1.6.0',
     ],
     entry_points='''
     [console_scripts]

@@ -4,9 +4,9 @@ from gevent.event import Event
 from devp2p.app import BaseApp
 from devp2p.service import BaseService
 from ethereum import slogging
-from ethereum.blocks import Block, BlockHeader
-from ethereum.config import Env
+from ethereum.block import Block, BlockHeader
 from ethereum.db import DB
+from ethereum.transaction_queue import TransactionQueue
 
 from pyethapp.pow_service import PoWService
 
@@ -17,24 +17,20 @@ TIMEOUT = 15       # Timeout for single block being minded.
 class ChainServiceMock(BaseService):
     name = 'chain'
 
-    class ChainMock:
-        def __init__(self):
-            env = Env(DB())
-            header = BlockHeader(difficulty=DIFFICULTY)
-            self.head_candidate = Block(header, env=env)
-
     def __init__(self, app):
         super(ChainServiceMock, self).__init__(app)
-        self.on_new_head_candidate_cbs = []
+        self.on_new_head_cbs = []
+        self.transaction_queue = TransactionQueue()
         self.is_syncing = False
-        self.chain = self.ChainMock()
         self.mined_block = None
         self.block_mined_event = Event()
+        self.head_candidate = Block(BlockHeader(difficulty=DIFFICULTY), db=DB())
 
     def add_mined_block(self, block):
         assert self.mined_block is None
         self.mined_block = block
         self.block_mined_event.set()
+        return True
 
 
 @pytest.fixture
@@ -53,7 +49,7 @@ def test_pow_default(app):
 
     assert pow
     assert chain
-    assert len(chain.on_new_head_candidate_cbs) == 1
+    assert len(chain.on_new_head_cbs) == 1
     assert not pow.active
     assert not app.config['pow']['activated']
     assert app.config['pow']['cpu_pct'] == 100

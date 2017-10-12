@@ -3,9 +3,9 @@ import gevent
 import gipc
 import random
 from devp2p.service import BaseService
-from devp2p.app import BaseApp
-from ethereum.ethpow import mine, TT64M1
+from ethereum.pow.ethpow import mine, TT64M1
 from ethereum.slogging import get_logger
+from ethereum.utils import encode_hex
 log = get_logger('pow')
 log_sub = get_logger('pow.subprocess')
 
@@ -23,7 +23,6 @@ class Miner(gevent.Greenlet):
         self.nonce_callback = nonce_callback
         self.hashrate_callback = hashrate_callback
         self.cpu_pct = cpu_pct
-        self.last = time.time()
         self.is_stopped = False
         super(Miner, self).__init__()
 
@@ -122,28 +121,26 @@ class PoWService(BaseService):
         self.cpipe, self.ppipe = gipc.pipe(duplex=True)
         self.worker_process = gipc.start_process(
             target=powworker_process, args=(self.cpipe, cpu_pct))
-        self.app.services.chain.on_new_head_candidate_cbs.append(self.on_new_head_candidate)
+        self.chain = app.services.chain
+        self.chain.on_new_head_cbs.append(self.mine_head_candidate)
         self.hashrate = 0
 
     @property
     def active(self):
         return self.app.config['pow']['activated']
 
-    def on_new_head_candidate(self, block):
-        log.debug('new head candidate', block_number=block.number,
-                  mining_hash=block.mining_hash.encode('hex'), activated=self.active)
-        if not self.active:
+    def mine_head_candidate(self, _=None):
+        hc = self.chain.head_candidate
+        if not self.active or self.chain.is_syncing:
             return
-        if self.app.services.chain.is_syncing:
-            return
-        if (block.transaction_count == 0 and
-                not self.app.config['pow']['mine_empty_blocks']):
+        elif (hc.transaction_count == 0 and
+              not self.app.config['pow']['mine_empty_blocks']):
             return
 
-        log.debug('mining', difficulty=block.difficulty)
-        self.ppipe.put(('mine', dict(mining_hash=block.mining_hash,
-                                     block_number=block.number,
-                                     difficulty=block.difficulty)))
+        log.debug('mining', difficulty=hc.difficulty)
+        self.ppipe.put(('mine', dict(mining_hash=hc.mining_hash,
+                                     block_number=hc.number,
+                                     difficulty=hc.difficulty)))
 
     def recv_hashrate(self, hashrate):
         log.trace('hashrate updated', hashrate=hashrate)
@@ -151,17 +148,20 @@ class PoWService(BaseService):
 
     def recv_found_nonce(self, bin_nonce, mixhash, mining_hash):
         log.info('nonce found', mining_hash=mining_hash.encode('hex'))
-        blk = self.app.services.chain.chain.head_candidate
-        if blk.mining_hash != mining_hash:
+        block = self.chain.head_candidate
+        if block.mining_hash != mining_hash:
             log.warn('mining_hash does not match')
-            self.mine_head_candidate()
-            return
-        blk.mixhash = mixhash
-        blk.nonce = bin_nonce
-        self.app.services.chain.add_mined_block(blk)
-
-    def mine_head_candidate(self):
-        self.on_new_head_candidate(self.app.services.chain.chain.head_candidate)
+            return False
+        block.header.mixhash = mixhash
+        block.header.nonce = bin_nonce
+        if self.chain.add_mined_block(block):
+            log.debug('mined block %d (%s) added to chain' % (
+                block.number, encode_hex(block.hash[:8])))
+            return True
+        else:
+            log.debug('failed to add mined block %d (%s) to chain' % (
+                block.number, encode_hex(block.hash[:8])))
+            return False
 
     def _run(self):
         self.mine_head_candidate()
@@ -174,8 +174,3 @@ class PoWService(BaseService):
         self.worker_process.terminate()
         self.worker_process.join()
         super(PoWService, self).stop()
-
-if __name__ == "__main__":
-    app = BaseApp()
-    PoWService.register_with_app(app)
-    app.start()

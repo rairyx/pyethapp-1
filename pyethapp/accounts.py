@@ -1,16 +1,18 @@
 import json
 import os
-import random
+from random import SystemRandom
 import shutil
 from uuid import UUID
 from devp2p.service import BaseService
-from ethereum import keys
+from ethereum.tools import keys
 from ethereum.slogging import get_logger
 from ethereum.utils import privtopub  # this is different  than the one used in devp2p.crypto
 from ethereum.utils import sha3, is_string, decode_hex, remove_0x_head
 log = get_logger('accounts')
 
 DEFAULT_COINBASE = 'de0b295669a9fd93d5f28d9ec85e40f4cb697bae'.decode('hex')
+
+random = SystemRandom()
 
 
 def mk_privkey(seed):
@@ -478,7 +480,7 @@ class AccountsService(BaseService):
         assert len(address) == 20
         accounts = [account for account in self.accounts if account.address == address]
         if len(accounts) == 0:
-            raise KeyError('account not found by address', address=address.encode('hex'))
+            raise KeyError('account with address {} not found'.format(address.encode('hex')))
         elif len(accounts) > 1:
             log.warning('multiple accounts with same address found', address=address.encode('hex'))
         return accounts[0]

@@ -1,30 +1,23 @@
 import os
-from pyethapp import monkeypatches
+import pytest
 from ethereum.db import EphemDB
+from pyethapp.config import update_config_with_defaults
 from pyethapp import eth_service
 from pyethapp import leveldb_service
 from pyethapp import codernitydb_service
 from pyethapp import eth_protocol
 from ethereum import slogging
+from ethereum.tools import tester
 from ethereum import config as eth_config
+from ethereum.transactions import Transaction
 import rlp
 import tempfile
-slogging.configure(config_string=':info')
+slogging.configure(config_string=':debug')
 
 empty = object()
 
 
 class AppMock(object):
-
-    config = dict(
-        app=dict(dir=tempfile.mkdtemp()),
-        db=dict(path='_db'),
-        eth=dict(
-            pruning=-1,
-            network_id=1,
-            block=eth_config.default_config
-        ),
-    )
 
     class Services(dict):
 
@@ -37,9 +30,19 @@ class AppMock(object):
             def broadcast(*args, **kwargs):
                 pass
 
-    def __init__(self, db=None):
+    def __init__(self, db=None, config={}):
         self.services = self.Services()
         self.services.db = EphemDB()
+        if 'app' not in config:
+            config['app'] = dict(dir=tempfile.mkdtemp())
+        if 'db' not in config:
+            config['db'] = dict(path='_db')
+        if 'eth' not in config:
+            config['eth'] = dict(
+                pruning=-1,
+                network_id=1,
+                block=eth_config.default_config)
+        self.config = config
 
 
 class PeerMock(object):
@@ -66,20 +69,20 @@ newblk_rlp = (
     "5f0b5d2a84fef43716c1f16c71d9a32193d881c2ea8eea335e950c0c08502595559e2")
 
 block_1 = (
-    "f901fcf901f7a0fd4af92a79c7fc2fd8bf0d342f2e832e1d4f485c85b9152d2039e03bc604f"
-    "dcaa01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d493479415ca"
-    "a04a9407a2f242b2859005a379655bfb9b11a00298b547b494ff85b4750d90ad212269cf642"
-    "f4fb7e6b205e461f3e10d18a950a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cad"
-    "c001622fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb"
-    "5e363b421b90100000000000000000000000000000000000000000000000000000000000000"
+    "f901f7a0fd4af92a79c7fc2fd8bf0d342f2e832e1d4f485c85b9152d2039e03bc604fdcaa01"
+    "dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d493479415caa04a94"
+    "07a2f242b2859005a379655bfb9b11a00298b547b494ff85b4750d90ad212269cf642f4fb7e"
+    "6b205e461f3e10d18a950a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc00162"
+    "2fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b"
+    "421b90100000000000000000000000000000000000000000000000000000000000000000000"
     "000000000000000000000000000000000000000000000000000000000000000000000000000"
     "000000000000000000000000000000000000000000000000000000000000000000000000000"
     "000000000000000000000000000000000000000000000000000000000000000000000000000"
     "000000000000000000000000000000000000000000000000000000000000000000000000000"
     "000000000000000000000000000000000000000000000000000000000000000000000000000"
-    "000000000000000000000000000000000000000000000000000000000000000000000000000"
-    "008302000001832fefd880845504456080a0839bc994837a59595159fb15605b6db119237c7"
-    "504edf5c5853b248700e0789c8872cf25e7727307bac0c0")
+    "000000000000000000000000000000000000000000000000000000000000000000000008302"
+    "000001832fefd880845504456080a0839bc994837a59595159fb15605b6db119237c7504edf"
+    "5c5853b248700e0789c8872cf25e7727307ba")
 
 
 fn = 'blocks256.hex.rlp'
@@ -95,7 +98,7 @@ def test_receive_newblock():
     eth.on_receive_newblock(proto, **d)
 
 
-def receive_blocks(rlp_data, leveldb=False, codernitydb=False):
+def receive_blockheaders(rlp_data, leveldb=False, codernitydb=False):
     app = AppMock()
     if leveldb:
         app.db = leveldb_service.LevelDB(
@@ -106,18 +109,64 @@ def receive_blocks(rlp_data, leveldb=False, codernitydb=False):
 
     eth = eth_service.ChainService(app)
     proto = eth_protocol.ETHProtocol(PeerMock(app), eth)
-    b = eth_protocol.ETHProtocol.blocks.decode_payload(rlp_data)
-    eth.on_receive_blocks(proto, b)
+    b = eth_protocol.ETHProtocol.blockheaders.decode_payload(rlp_data)
+    eth.on_receive_blockheaders(proto, b)
 
 
 def test_receive_block1():
     rlp_data = rlp.encode([rlp.decode(block_1.decode('hex'))])
-    receive_blocks(rlp_data)
+    receive_blockheaders(rlp_data)
 
 
-def test_receive_blocks_256():
-    receive_blocks(data256.decode('hex'))
+def test_receive_blockheaders_256():
+    receive_blockheaders(data256.decode('hex'))
 
 
-def test_receive_blocks_256_leveldb():
-    receive_blocks(data256.decode('hex'), leveldb=True)
+def test_receive_blockheaders_256_leveldb():
+    receive_blockheaders(data256.decode('hex'), leveldb=True)
+
+
+@pytest.fixture
+def test_app(tmpdir):
+    config = {
+        'eth': {
+            'pruning': -1,
+            'network_id': 1,
+            'block': {  # reduced difficulty, increased gas limit, allocations to test accounts
+                'ACCOUNT_INITIAL_NONCE': 0,
+                'GENESIS_DIFFICULTY': 1,
+                'BLOCK_DIFF_FACTOR': 2,  # greater than difficulty, thus difficulty is constant
+                'GENESIS_GAS_LIMIT': 3141592,
+                'GENESIS_INITIAL_ALLOC': {
+                    tester.accounts[0].encode('hex'): {'balance': 10 ** 24},
+                    tester.accounts[1].encode('hex'): {'balance': 10 ** 24},
+                    tester.accounts[2].encode('hex'): {'balance': 10 ** 24},
+                    tester.accounts[3].encode('hex'): {'balance': 10 ** 24},
+                    tester.accounts[4].encode('hex'): {'balance': 10 ** 24},
+                }
+            }
+        }
+    }
+    update_config_with_defaults(config, {'eth': {'block': eth_config.default_config}})
+    app = AppMock(config=config)
+    app.chain = eth_service.ChainService(app)
+    return app
+
+
+def test_head_candidate(test_app):
+    chainservice = test_app.chain
+    assert len(chainservice.head_candidate.transactions) == 0
+    for i in range(5):
+        tx = make_transaction(tester.keys[i], 0, 0, tester.accounts[2])
+        chainservice.add_transaction(tx)
+        assert len(chainservice.head_candidate.transactions) == i + 1
+
+
+def make_transaction(key, nonce, value, to):
+    gasprice = 20 * 10**9
+    startgas = 500 * 1000
+    v, r, s = 0, 0, 0
+    data = "foo"
+    tx = Transaction(nonce, gasprice, startgas, to, value, data, v, r, s)
+    tx.sign(key)
+    return tx

@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from uuid import uuid4
-import ethereum.keys
+import ethereum.tools.keys
 from ethereum.slogging import get_logger
 from ethereum.utils import decode_hex, remove_0x_head
 from devp2p.app import BaseApp
@@ -11,7 +11,7 @@ from pyethapp.accounts import Account, AccountsService, DEFAULT_COINBASE
 
 
 # reduce key derivation iterations
-ethereum.keys.PBKDF2_CONSTANTS['c'] = 100
+ethereum.tools.keys.PBKDF2_CONSTANTS['c'] = 100
 
 log = get_logger('tests.account_service')
 
@@ -50,6 +50,9 @@ def uuid():
 def account(privkey, password, uuid):
     return Account.new(password, privkey, uuid)
 
+@pytest.fixture()
+def patched_logger_warning(mocker):
+    return mocker.patch('logging.Logger.warning')
 
 def test_empty(app):
     s = app.services.accounts
@@ -357,3 +360,35 @@ def test_coinbase(app, account):
         app.config['accounts']['must_include_coinbase'] = True
         with pytest.raises(ValueError):
             s.coinbase
+
+def test_get_by_address(app, account):
+    """
+    Makes sure we can retrieve existing account by address.
+    """
+    s = app.services.accounts
+    s.add_account(account, store=False)
+    assert account == s.get_by_address(account.address)
+
+def test_get_by_address_no_match(app, account):
+    """
+    Makes sure an exception is raised when trying to
+    retrieve an account that's not available.
+    """
+    s = app.services.accounts
+    try:
+        s.get_by_address(account.address)
+        assert False, "An exception should have been raised on no account match"
+    except KeyError as e:
+        assert e.message == "account with address 41ad2bc63a2059f9b623533d87fe99887d794847 not found"
+
+def test_get_by_address_multiple_match(app, account, patched_logger_warning):
+    """
+    Verifies a warning is sent on get_by_address() call with multiple accounts match.
+    """
+    s = app.services.accounts
+    s.add_account(account, store=False)
+    account.uuid = None
+    s.add_account(account, store=False)
+    s.get_by_address(account.address)
+    patched_logger_warning.assert_called_once_with(
+        "multiple accounts with same address found", address=account.address.encode('hex'))

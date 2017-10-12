@@ -26,7 +26,7 @@ import ethereum.slogging as slogging
 from devp2p.service import BaseService
 from devp2p.app import BaseApp
 from accounts import mk_random_privkey
-from ethereum.keys import decode_hex
+from ethereum.tools.keys import decode_hex
 from ethereum.utils import parse_int_or_hex, remove_0x_head
 
 
@@ -205,6 +205,9 @@ def update_config_from_genesis_json(config, genesis_json_filename_or_dict):
     unknown_keys = set(genesis_dict.keys()) - valid_keys
     if unknown_keys:
         raise ValueError('genesis_dict contains invalid keys.')
+
+    # TODO: we should only keep raw genesis data to have better interoperability?
+    config['eth']['genesis_data'] = genesis_dict
 
     config.setdefault('eth', {}).setdefault('block', {})
     ethblock_config = config['eth']['block']

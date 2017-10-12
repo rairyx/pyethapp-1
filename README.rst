@@ -35,7 +35,7 @@ pyethapp leverages two ethereum core components to implement the client:
 * pydevp2p_ - the p2p networking library, featuring node discovery for and transport of multiple services over multiplexed and encrypted connections
 
 
-.. _Ethereum: http://ethereum.org/
+.. _Ethereum: https://ethereum.org/
 .. _pyethereum: https://github.com/ethereum/pyethereum
 .. _pydevp2p: https://github.com/ethereum/pydevp2p
 
@@ -57,7 +57,7 @@ advised to install system-dependecies with the help of a package manager
 Please install a *virtualenv* environment for a comfortable Pyethapp
 installation. Also, it is always recommended to use it in combination
 with the
-`virtualenvwrapper <http://virtualenvwrapper.readthedocs.org/en/latest/>`__
+`virtualenvwrapper <https://virtualenvwrapper.readthedocs.org/en/latest/>`__
 extension.
 
 The
@@ -118,7 +118,7 @@ above, then:
     ($ mkvirtualenv pyethapp)
     $ git clone https://github.com/ethereum/pyethapp
     $ cd pyethapp
-    $ python setup.py develop
+    $ USE_PYETHEREUM_DEVELOP=1 python setup.py develop
 
 This has the advantage that inside of Python's
 ``lib/python2.7/site-packages`` there is a direct link to your directory

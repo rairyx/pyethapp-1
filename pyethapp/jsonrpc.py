@@ -3,9 +3,17 @@ import inspect
 from copy import deepcopy
 from collections import Iterable
 
-import ethereum.blocks
 import ethereum.bloom as bloom
+from ethereum.utils import (is_numeric, is_string, int_to_big_endian, big_endian_to_int,
+                            encode_hex, decode_hex, sha3, zpad, denoms, int32)
 import ethereum.slogging as slogging
+from ethereum.slogging import LogRecorder
+from ethereum.config import Env
+from ethereum.block import Block
+from ethereum.state import State
+from ethereum.messages import apply_transaction
+from ethereum.transactions import Transaction
+from ethereum.genesis_helpers import mk_genesis_block
 import gevent
 import gevent.queue
 import gevent.wsgi
@@ -13,15 +21,8 @@ import rlp
 from decorator import decorator
 from accounts import Account
 from devp2p.service import BaseService
-from ethereum import processblock
 from ethereum.exceptions import InvalidTransaction
-from ethereum.slogging import LogRecorder
-from ethereum.transactions import Transaction
 from ethereum.trie import Trie
-from ethereum.utils import (
-    big_endian_to_int, decode_hex, denoms, encode_hex, int_to_big_endian, is_numeric,
-    is_string, int32, sha3, zpad,
-)
 from eth_protocol import ETHProtocol
 from ipc_rpc import bind_unix_listener, serve
 from tinyrpc.dispatch import public as public_
@@ -99,7 +100,7 @@ class LoggingDispatcher(RPCDispatcher):
         super(LoggingDispatcher, self).__init__()
         self.logger = log.debug
 
-    def dispatch(self, request):
+    def dispatch(self, request, caller=None):
         try:
             if isinstance(request, Iterable):
                 request_list = request
@@ -177,26 +178,31 @@ class RPCServer(BaseService):
         log.debug("get_block")
         assert 'chain' in self.app.services
         chain = self.app.services.chain.chain
+        head_candidate = self.app.services.chain.head_candidate
         if block_id is None:
             block_id = self.default_block
         else:
             self.default_block = block_id
+
         if block_id == 'pending':
-            return self.app.services.chain.chain.head_candidate
-        if block_id == 'latest':
-            return chain.head
-        if block_id == 'earliest':
-            block_id = 0
-        if is_numeric(block_id):
-            # by number
-            hash_ = chain.index.get_block_by_number(block_id)
-        elif block_id == chain.head_candidate.hash:
-            return chain.head_candidate
+            block = head_candidate
+        elif block_id == 'latest':
+            block = chain.head
+        elif block_id == 'earliest':
+            block = chain.get_block_by_number(0)
+        elif is_numeric(block_id):
+            block = chain.get_block_by_number(block_id)
+        elif block_id == head_candidate.hash:
+            block = head_candidate
         else:
             # by hash
             assert is_string(block_id)
-            hash_ = block_id
-        return chain.get(hash_)
+            block = chain.get_block(block_id)
+            if block is None:
+                raise KeyError("Block with id %s does not exist" % block_id)
+
+        block.score = chain.get_score(block)
+        return block
 
 
 class IPCRPCServer(RPCServer):
@@ -442,7 +448,7 @@ def bool_decoder(data):
 def block_encoder(block, include_transactions=False, pending=False, is_header=False):
     """Encode a block as JSON object.
 
-    :param block: a :class:`ethereum.blocks.Block`
+    :param block: a :class:`ethereum.block.Block`
     :param include_transactions: if true transactions are included, otherwise
                                  only their hashes
     :param pending: if `True` the block number of transactions, if included, is set to `None`
@@ -469,15 +475,15 @@ def block_encoder(block, include_transactions=False, pending=False, is_header=Fa
         'timestamp': quantity_encoder(block.timestamp),
     }
     if not is_header:
-        d['totalDifficulty'] = quantity_encoder(block.chain_difficulty())
+        d['totalDifficulty'] = quantity_encoder(block.score)
         d['size'] = quantity_encoder(len(rlp.encode(block)))
         d['uncles'] = [data_encoder(u.hash) for u in block.uncles]
         if include_transactions:
             d['transactions'] = []
-            for i, tx in enumerate(block.get_transactions()):
+            for i, tx in enumerate(block.transactions):
                 d['transactions'].append(tx_encoder(tx, block, i, pending))
         else:
-            d['transactions'] = [data_encoder(tx.hash) for tx in block.get_transactions()]
+            d['transactions'] = [data_encoder(tx.hash) for tx in block.transactions]
     return d
 
 
@@ -499,6 +505,9 @@ def tx_encoder(transaction, block, i, pending):
         'gasPrice': quantity_encoder(transaction.gasprice),
         'gas': quantity_encoder(transaction.startgas),
         'input': data_encoder(transaction.data),
+        'r': quantity_encoder(transaction.r),
+        's': quantity_encoder(transaction.s),
+        'v': quantity_encoder(transaction.v),
     }
 
 
@@ -524,8 +533,9 @@ def loglist_encoder(loglist):
     return result
 
 
-def filter_decoder(filter_dict, chain):
+def filter_decoder(filter_dict, chainservice):
     """Decodes a filter as expected by eth_newFilter or eth_getLogs to a :class:`Filter`."""
+    chain = chainservice.chain
     if not isinstance(filter_dict, dict):
         raise BadRequestError('Filter must be an object')
     address = filter_dict.get('address', None)
@@ -575,13 +585,13 @@ def filter_decoder(filter_dict, chain):
     block_id_dict = {
         'earliest': 0,
         'latest': chain.head.number,
-        'pending': chain.head_candidate.number
+        'pending': chainservice.head_candidate.number
     }
     range_ = [b if is_numeric(b) else block_id_dict[b] for b in (from_block, to_block)]
     if range_[0] > range_[1]:
         raise JSONRPCInvalidParamsError('fromBlock must not be newer than toBlock')
 
-    return LogFilter(chain, from_block, to_block, addresses, topics)
+    return LogFilter(chainservice, from_block, to_block, addresses, topics)
 
 
 def decode_arg(name, decoder):
@@ -700,8 +710,8 @@ class Compilers(Subdispatcher):
             except ImportError:
                 pass
             try:
-                import ethereum._solidity
-                s = ethereum._solidity.get_solidity()
+                import ethereum.tools._solidity
+                s = ethereum.tools._solidity.get_solidity()
                 if s:
                     self.compilers_['solidity'] = s.compile_rich
                 else:
@@ -769,7 +779,8 @@ class Miner(Subdispatcher):
 
     @public
     def accounts(self):
-        return [address_encoder(account.address) for account in self.app.services.accounts]
+        return [address_encoder(self.app.services.accounts.coinbase)] + \
+            [address_encoder(account.address) for account in self.app.services.accounts]
 
 
 class DB(Subdispatcher):
@@ -841,7 +852,8 @@ class Chain(Subdispatcher):
     @encode_res(quantity_encoder)
     def getBalance(self, address, block_id=None):
         block = self.json_rpc_server.get_block(block_id)
-        return block.get_balance(address)
+        state = State(block.state_root, self.chain.chain.env)
+        return state.get_balance(address)
 
     @public
     @decode_arg('address', address_decoder)
@@ -859,50 +871,43 @@ class Chain(Subdispatcher):
     @encode_res(quantity_encoder)
     def getTransactionCount(self, address, block_id='pending'):
         block = self.json_rpc_server.get_block(block_id)
-        return block.get_nonce(address) - \
+        state = State(block.state_root, self.chain.chain.env)
+        return state.get_nonce(address) - \
             self.json_rpc_server.config['eth']['block']['ACCOUNT_INITIAL_NONCE']
 
     @public
     @decode_arg('block_hash', block_hash_decoder)
     def getBlockTransactionCountByHash(self, block_hash):
-        try:
-            block = self.json_rpc_server.get_block(block_hash)
-        except KeyError:
+        block = self.json_rpc_server.get_block(block_hash)
+        if block is None:
             return None
-        else:
-            return quantity_encoder(block.transaction_count)
+        return quantity_encoder(block.transaction_count)
 
     @public
     @decode_arg('block_id', block_id_decoder)
     def getBlockTransactionCountByNumber(self, block_id):
-        try:
-            block = self.json_rpc_server.get_block(block_id)
-        except KeyError:
+        block = self.json_rpc_server.get_block(block_id)
+        if block is None:
             return None
-        else:
-            return quantity_encoder(block.transaction_count)
+        return quantity_encoder(block.transaction_count)
 
     @public
     @decode_arg('block_hash', block_hash_decoder)
     def getUncleCountByBlockHash(self, block_hash):
-        try:
-            block = self.json_rpc_server.get_block(block_hash)
-        except KeyError:
+        block = self.json_rpc_server.get_block(block_hash)
+        if block is None:
             return None
-        else:
-            return quantity_encoder(len(block.uncles))
+        return quantity_encoder(len(block.uncles))
 
     @public
     @decode_arg('block_id', block_id_decoder)
     def getUncleCountByBlockNumber(self, block_id):
-        try:
-            if block_id == u'pending':
-                return None
-            block = self.json_rpc_server.get_block(block_id)
-        except KeyError:
+        if block_id == u'pending':
             return None
-        else:
-            return quantity_encoder(len(block.uncles))
+        block = self.json_rpc_server.get_block(block_id)
+        if block is None:
+            return None
+        return quantity_encoder(len(block.uncles))
 
     @public
     @decode_arg('address', address_decoder)
@@ -910,15 +915,15 @@ class Chain(Subdispatcher):
     @encode_res(data_encoder)
     def getCode(self, address, block_id=None):
         block = self.json_rpc_server.get_block(block_id)
-        return block.get_code(address)
+        state = State(block.state_root, self.chain.chain.env)
+        return state.get_code(address)
 
     @public
     @decode_arg('block_hash', block_hash_decoder)
     @decode_arg('include_transactions', bool_decoder)
     def getBlockByHash(self, block_hash, include_transactions):
-        try:
-            block = self.json_rpc_server.get_block(block_hash)
-        except KeyError:
+        block = self.json_rpc_server.get_block(block_hash)
+        if block is None:
             return None
         return block_encoder(block, include_transactions)
 
@@ -926,9 +931,8 @@ class Chain(Subdispatcher):
     @decode_arg('block_id', block_id_decoder)
     @decode_arg('include_transactions', bool_decoder)
     def getBlockByNumber(self, block_id, include_transactions):
-        try:
-            block = self.json_rpc_server.get_block(block_id)
-        except KeyError:
+        block = self.json_rpc_server.get_block(block_id)
+        if block is None:
             return None
         return block_encoder(block, include_transactions, pending=block_id == 'pending')
 
@@ -936,8 +940,8 @@ class Chain(Subdispatcher):
     @decode_arg('tx_hash', tx_hash_decoder)
     def getTransactionByHash(self, tx_hash):
         try:
-            tx, block, index = self.chain.chain.index.get_transaction(tx_hash)
-            if self.chain.chain.in_main_branch(block):
+            tx, block, index = self.chain.chain.get_transaction(tx_hash)
+            if block in self.chain.chain:
                 return tx_encoder(tx, block, index, False)
         except KeyError:
             return None
@@ -948,6 +952,8 @@ class Chain(Subdispatcher):
     @decode_arg('index', quantity_decoder)
     def getTransactionByBlockHashAndIndex(self, block_hash, index):
         block = self.json_rpc_server.get_block(block_hash)
+        if block is None:
+            return None
         try:
             tx = block.get_transaction(index)
         except IndexError:
@@ -959,6 +965,8 @@ class Chain(Subdispatcher):
     @decode_arg('index', quantity_decoder)
     def getTransactionByBlockNumberAndIndex(self, block_id, index):
         block = self.json_rpc_server.get_block(block_id)
+        if block is None:
+            return None
         try:
             tx = block.get_transaction(index)
         except IndexError:
@@ -969,10 +977,12 @@ class Chain(Subdispatcher):
     @decode_arg('block_hash', block_hash_decoder)
     @decode_arg('index', quantity_decoder)
     def getUncleByBlockHashAndIndex(self, block_hash, index):
+        block = self.json_rpc_server.get_block(block_hash)
+        if block is None:
+            return None
         try:
-            block = self.json_rpc_server.get_block(block_hash)
             uncle = block.uncles[index]
-        except (IndexError, KeyError):
+        except IndexError:
             return None
         return block_encoder(uncle, is_header=True)
 
@@ -980,20 +990,22 @@ class Chain(Subdispatcher):
     @decode_arg('block_id', block_id_decoder)
     @decode_arg('index', quantity_decoder)
     def getUncleByBlockNumberAndIndex(self, block_id, index):
+        # TODO: think about moving this check into the Block.uncles property
+        if block_id == u'pending':
+            return None
+        block = self.json_rpc_server.get_block(block_id)
+        if block is None:
+            return None
         try:
-            # TODO: think about moving this check into the Block.uncles property
-            if block_id == u'pending':
-                return None
-            block = self.json_rpc_server.get_block(block_id)
             uncle = block.uncles[index]
-        except (IndexError, KeyError):
+        except IndexError:
             return None
         return block_encoder(uncle, is_header=True)
 
     @public
     def getWork(self):
         print 'Sending work...'
-        h = self.chain.chain.head_candidate
+        h = self.chain.head_candidate
         return [
             encode_hex(h.header.mining_hash),
             encode_hex(h.header.seed),
@@ -1024,7 +1036,7 @@ class Chain(Subdispatcher):
     @decode_arg('mix_digest', data_decoder)
     def submitWork(self, nonce, mining_hash, mix_digest):
         print 'submitting work'
-        h = self.chain.chain.head_candidate
+        h = self.chain.head_candidate
         print 'header: %s' % encode_hex(rlp.encode(h))
         if h.header.mining_hash != mining_hash:
             return False
@@ -1034,7 +1046,7 @@ class Chain(Subdispatcher):
         print 'seed: %s' % encode_hex(h.header.seed)
         h.header.nonce = nonce
         h.header.mixhash = mix_digest
-        if not h.header.check_pow():
+        if not self.chain.check_header(h.header):
             print 'PoW check false'
             return False
         print 'PoW check true'
@@ -1062,7 +1074,8 @@ class Chain(Subdispatcher):
         assert address is not None
         block = self.json_rpc_server.get_block(block_id)
         assert block is not None
-        nonce = block.get_nonce(address)
+        state = State(block.state_root, self.chain.chain.env)
+        nonce = state.get_nonce(address)
         assert nonce is not None and isinstance(nonce, int)
         return nonce
 
@@ -1099,7 +1112,9 @@ class Chain(Subdispatcher):
             assert v and r and s
         else:
             if nonce is None or nonce == 0:
-                nonce = self.app.services.chain.chain.head_candidate.get_nonce(sender)
+                hc = self.chain.head_candidate
+                state = State(hc.state_root, self.chain.chain.env)
+                nonce = state.get_nonce(sender)
 
         tx = Transaction(nonce, gasprice, startgas, to, value, data_, v, r, s)
         tx._sender = None
@@ -1107,7 +1122,7 @@ class Chain(Subdispatcher):
             assert sender in self.app.services.accounts, 'can not sign: no account for sender'
             self.app.services.accounts.sign_tx(sender, tx)
         self.app.services.chain.add_transaction(tx, origin=None, force_broadcast=True)
-        log.debug('decoded tx', tx=tx.log_dict())
+        log.debug('decoded tx', tx=tx.to_dict())
         return data_encoder(tx.hash)
 
     @public
@@ -1117,17 +1132,17 @@ class Chain(Subdispatcher):
         decode sendRawTransaction request data, format it and relay along to the sendTransaction method
         to ensure the same validations and processing rules are applied
         """
-        tx_data = rlp.codec.decode(data, ethereum.transactions.Transaction)
+        tx_data = rlp.codec.decode(data, Transaction)
 
         tx_dict = tx_data.to_dict()
         # encode addresses
-        tx_dict['from'] = address_encoder(tx_dict.get('sender', ''))
+        tx_dict['from'] = tx_dict.get('sender', '')
         to_value = tx_dict.get('to', '')
         if to_value:
-            tx_dict['to'] = address_encoder(to_value)
+            tx_dict['to'] = to_value
 
         # encode data
-        tx_dict['data'] = data_encoder(tx_dict.get('data', b''))
+        tx_dict['data'] = tx_dict.get('data', data_encoder(b''))
 
         # encode quantities included in the raw transaction data
         gasprice_key = 'gasPrice' if 'gasPrice' in tx_dict else 'gasprice'
@@ -1149,19 +1164,19 @@ class Chain(Subdispatcher):
 
         # rebuild block state before finalization
         if block.has_parent():
-            parent = block.get_parent()
+            parent = self.chain.get_parent(block)
             test_block = block.init_from_parent(parent, block.coinbase,
                                                 timestamp=block.timestamp)
             for tx in block.get_transactions():
-                success, output = processblock.apply_transaction(test_block, tx)
+                success, output = apply_transaction(test_block, tx)
                 assert success
         else:
-            env = ethereum.config.Env(db=block.db)
-            test_block = ethereum.blocks.genesis(env)
+            env = Env(db=block.db)
+            test_block = mk_genesis_block(env)
             original = {key: value for key, value in snapshot_before.items() if key != 'txs'}
             original = deepcopy(original)
             original['txs'] = Trie(snapshot_before['txs'].db, snapshot_before['txs'].root_hash)
-            test_block = ethereum.blocks.genesis(env)
+            test_block = mk_genesis_block(env)
             test_block.revert(original)
 
         # validate transaction
@@ -1195,7 +1210,7 @@ class Chain(Subdispatcher):
         tx.sender = sender
 
         try:
-            success, output = processblock.apply_transaction(test_block, tx)
+            success, output = apply_transaction(test_block, tx)
         except InvalidTransaction:
             success = False
         # make sure we didn't change the real state
@@ -1218,18 +1233,19 @@ class Chain(Subdispatcher):
 
         # rebuild block state before finalization
         if block.has_parent():
-            parent = block.get_parent()
+            parent = self.chain.get_parent(block)
             test_block = block.init_from_parent(parent, block.coinbase,
                                                 timestamp=block.timestamp)
             for tx in block.get_transactions():
-                success, output = processblock.apply_transaction(test_block, tx)
+                success, output = apply_transaction(test_block, tx)
                 assert success
         else:
-            test_block = ethereum.blocks.genesis(block.db)
+            env = Env(db=block.db)
+            test_block = mk_genesis_block(env)
             original = {key: value for key, value in snapshot_before.items() if key != 'txs'}
             original = deepcopy(original)
             original['txs'] = Trie(snapshot_before['txs'].db, snapshot_before['txs'].root_hash)
-            test_block = ethereum.blocks.genesis(block.db)
+            test_block = mk_genesis_block(env)
             test_block.revert(original)
 
         # validate transaction
@@ -1263,7 +1279,7 @@ class Chain(Subdispatcher):
         tx.sender = sender
 
         try:
-            success, output = processblock.apply_transaction(test_block, tx)
+            success, output = apply_transaction(test_block, tx)
         except InvalidTransaction:
             success = False
         # make sure we didn't change the real state
@@ -1290,8 +1306,9 @@ class LogFilter(object):
                               logs again or `None` if no block has been checked yet
     """
 
-    def __init__(self, chain, first_block, last_block, addresses=None, topics=None):
-        self.chain = chain
+    def __init__(self, chainservice, first_block, last_block, addresses=None, topics=None):
+        self.chainservice = chainservice
+        self.chain = chainservice.chain
         assert is_numeric(first_block) or first_block in ('latest', 'pending', 'earliest')
         assert is_numeric(last_block) or last_block in ('latest', 'pending', 'earliest')
         self.first_block = first_block
@@ -1328,7 +1345,7 @@ class LogFilter(object):
         block_id_dict = {
             'earliest': 0,
             'latest': self.chain.head.number,
-            'pending': self.chain.head_candidate.number
+            'pending': self.chainservice.head_candidate.number
         }
         if is_numeric(self.first_block):
             first = self.first_block
@@ -1350,12 +1367,12 @@ class LogFilter(object):
 
         blocks_to_check = []
         for n in range(first, last):
-            blocks_to_check.append(self.chain.index.get_block_by_number(n))
+            blocks_to_check.append(self.chain.get_block_by_number(n))
         # last block may be head candidate, which cannot be retrieved via get_block_by_number
-        if last == self.chain.head_candidate.number:
-            blocks_to_check.append(self.chain.head_candidate)
+        if last == self.chainservice.head_candidate.number:
+            blocks_to_check.append(self.chainservice.head_candidate)
         else:
-            blocks_to_check.append(self.chain.get(self.chain.index.get_block_by_number(last)))
+            blocks_to_check.append(self.chain.get_block_by_number(last))
         logger.debug('obtained block hashes to check with filter', numhashes=len(blocks_to_check))
 
         # go through all receipts of all blocks
@@ -1363,8 +1380,8 @@ class LogFilter(object):
         new_logs = {}
 
         for i, block in enumerate(blocks_to_check):
-            if not isinstance(block, (ethereum.blocks.Block, ethereum.blocks.CachedBlock)):
-                _bloom = self.chain.get_bloom(block)
+            if not isinstance(block, Block):
+                _bloom = self.chain.get_block(block).bloom
                 # Check that the bloom for this block contains at least one of the desired
                 # addresses
                 if self.addresses:
@@ -1399,11 +1416,11 @@ class LogFilter(object):
                     _topic_bloom = bloom.bloom_from_list(map(int32.serialize, self.topics or []))
                     if bloom.bloom_combine(_bloom, _topic_bloom) != _bloom:
                         continue
-                block = self.chain.get(block)
+                block = self.chain.get_block(block)
                 print 'bloom filter passed'
             logger.debug('-')
             logger.debug('with block', block=block)
-            receipts = block.get_receipts()
+            receipts = self.chainservice.get_receipts(block)
             logger.debug('receipts', block=block, receipts=receipts)
             for r_idx, receipt in enumerate(receipts):  # one receipt per tx
                 for l_idx, log in enumerate(receipt.logs):
@@ -1428,21 +1445,21 @@ class LogFilter(object):
                     if self.addresses is not None and log.address not in self.addresses:
                         continue
                     # still here, so match was successful => add to log list
-                    tx = block.get_transaction(r_idx)
-                    id_ = ethereum.utils.sha3(''.join((tx.hash, str(l_idx))))
-                    pending = block == self.chain.head_candidate
+                    tx = block.transactions[r_idx]
+                    id_ = sha3(''.join((tx.hash, str(l_idx))))
+                    pending = block == self.chainservice.head_candidate
                     r = dict(log=log, log_idx=l_idx, block=block, txhash=tx.hash, tx_idx=r_idx,
                              pending=pending)
                     logger.debug('FOUND LOG', id=id_.encode('hex'))
                     new_logs[id_] = r  # (log, i, block)
         # don't check blocks again, that have been checked already and won't change anymore
         self.last_block_checked = blocks_to_check[-1]
-        if blocks_to_check[-1] != self.chain.head_candidate:
+        if blocks_to_check[-1] != self.chainservice.head_candidate:
             self.last_block_checked = blocks_to_check[-1]
         else:
             self.last_block_checked = blocks_to_check[-2] if len(blocks_to_check) >= 2 else None
-        if self.last_block_checked and not isinstance(self.last_block_checked, (ethereum.blocks.Block, ethereum.blocks.CachedBlock)):
-            self.last_block_checked = self.chain.get(self.last_block_checked)
+        if self.last_block_checked and not isinstance(self.last_block_checked, Block):
+            self.last_block_checked = self.chain.get_block(self.last_block_checked)
         actually_new_ids = new_logs.viewkeys() - self.log_dict.viewkeys()
         self.log_dict.update(new_logs)
         return {id_: new_logs[id_] for id_ in actually_new_ids}
@@ -1483,7 +1500,7 @@ class BlockFilter(object):
         block = self.chain.head
         while block.number > self.latest_block.number:
             new_blocks.append(block)
-            block = block.get_parent()
+            block = self.chain.get_parent(block)
         assert block.number == self.latest_block.number
         if block != self.latest_block:
             log.warning('previous latest block not in current chain',
@@ -1505,24 +1522,25 @@ class PendingTransactionFilter(object):
     :ivar reported_txs: txs from the (formerly) pending block which don't have to be reported again
     """
 
-    def __init__(self, chain):
-        self.chain = chain
-        self.latest_block = self.chain.head_candidate
+    def __init__(self, chainservice):
+        self.chainservice = chainservice
+        self.chain = chainservice.chain
+        self.latest_block = self.chainservice.head_candidate
         self.reported_txs = []  # needs only to contain txs from latest block
 
     def check(self):
         """Check for new transactions and return them."""
         # check current pending block first
-        pending_txs = self.chain.head_candidate.get_transactions()
+        pending_txs = self.chainservice.head_candidate.transactions
         new_txs = list(reversed([tx for tx in pending_txs if tx not in self.reported_txs]))
         # now check all blocks which have already been finalized
-        block = self.chain.head_candidate.get_parent()
+        block = self.chain.get_parent(self.chainservice.head_candidate)
         while block.number >= self.latest_block.number:
-            for tx in reversed(block.get_transactions()):
+            for tx in reversed(block.transactions):
                 if tx not in self.reported_txs:
                     new_txs.append(tx)
-            block = block.get_parent()
-        self.latest_block = self.chain.head_candidate
+            block = self.chain.get_parent(block)
+        self.latest_block = self.chainservice.head_candidate
         self.reported_txs = pending_txs
         return reversed(new_txs)
 
@@ -1539,7 +1557,7 @@ class FilterManager(Subdispatcher):
     @public
     @encode_res(quantity_encoder)
     def newFilter(self, filter_dict):
-        filter_ = filter_decoder(filter_dict, self.chain.chain)
+        filter_ = filter_decoder(filter_dict, self.chain)
         self.filters[self.next_id] = filter_
         self.next_id += 1
         return self.next_id - 1
@@ -1555,7 +1573,7 @@ class FilterManager(Subdispatcher):
     @public
     @encode_res(quantity_encoder)
     def newPendingTransactionFilter(self):
-        filter_ = PendingTransactionFilter(self.chain.chain)
+        filter_ = PendingTransactionFilter(self.chain)
         self.filters[self.next_id] = filter_
         self.next_id += 1
         return self.next_id - 1
@@ -1597,18 +1615,18 @@ class FilterManager(Subdispatcher):
     @public
     @encode_res(loglist_encoder)
     def getLogs(self, filter_dict):
-        filter_ = filter_decoder(filter_dict, self.chain.chain)
+        filter_ = filter_decoder(filter_dict, self.chain)
         return filter_.logs
 
     # ########### Trace ############
     def _get_block_before_tx(self, txhash):
-        tx, blk, i = self.app.services.chain.chain.index.get_transaction(txhash)
+        tx, blk, i = self.app.services.chain.chain.get_transaction(txhash)
         # get the state we had before this transaction
-        test_blk = ethereum.blocks.Block.init_from_parent(blk.get_parent(),
-                                                          blk.coinbase,
-                                                          extra_data=blk.extra_data,
-                                                          timestamp=blk.timestamp,
-                                                          uncles=blk.uncles)
+        test_blk = Block.init_from_parent(self.chain.get_parent(blk),
+                                          blk.coinbase,
+                                          extra_data=blk.extra_data,
+                                          timestamp=blk.timestamp,
+                                          uncles=blk.uncles)
         pre_state = test_blk.state_root
         for i in range(blk.transaction_count):
             tx_lst_serialized, sr, _ = blk.get_transaction(i)
@@ -1629,7 +1647,7 @@ class FilterManager(Subdispatcher):
         recorder = LogRecorder()
         # apply tx (thread? we don't want logs from other invocations)
         self.app.services.chain.add_transaction_lock.acquire()
-        processblock.apply_transaction(test_blk, tx)  # FIXME deactivate tx context switch or lock
+        apply_transaction(test_blk, tx)  # FIXME deactivate tx context switch or lock
         self.app.services.chain.add_transaction_lock.release()
         return dict(tx=txhash, trace=recorder.pop_records())
 
@@ -1660,12 +1678,12 @@ class FilterManager(Subdispatcher):
     @decode_arg('tx_hash', tx_hash_decoder)
     def getTransactionReceipt(self, tx_hash):
         try:
-            tx, block, index = self.chain.chain.index.get_transaction(tx_hash)
+            tx, block, index = self.chain.chain.get_transaction(tx_hash)
         except KeyError:
             return None
-        if not self.chain.chain.in_main_branch(block):
+        if block not in self.chain.chain:
             return None
-        receipt = block.get_receipt(index)
+        receipt = self.chain.get_receipts(block)[index]
         response = {
             'transactionHash': data_encoder(tx.hash),
             'transactionIndex': quantity_encoder(index),
@@ -1677,7 +1695,7 @@ class FilterManager(Subdispatcher):
         if index == 0:
             response['gasUsed'] = quantity_encoder(receipt.gas_used)
         else:
-            prev_receipt = block.get_receipt(index - 1)
+            prev_receipt = temp_state.receipts[index - 1]
             assert prev_receipt.gas_used < receipt.gas_used
             response['gasUsed'] = quantity_encoder(receipt.gas_used - prev_receipt.gas_used)
 
