@@ -22,6 +22,10 @@ class HeaderRequest(object):
         self.headers = headers
         self.time = time.time()
 
+class BodyResponse(object):
+    def __init__(self, header=None):
+        self.header = header
+        self.block = []
 
 class SyncTask(object):
 
@@ -42,10 +46,7 @@ class SyncTask(object):
     initial_blockheaders_per_request = 32
     max_blockheaders_per_request = 192
     max_skeleton_size = 128
-    max_blocks_per_request = 192
     blockheaders_request_timeout = 15.
-    
-    max_blocks_per_request = 128
     max_retries = 3
     retry_delay = 2.
     blocks_request_timeout = 16.
@@ -362,9 +363,11 @@ class SyncBody(object):
 
     max_blocks_per_request = 128
     max_blocks_process= 2048 
-    blocks_request_timeout = 15.
+    blocks_request_timeout = 19.
     max_retries = 5
     retry_delay = 3.
+    body_cache_offset = 0 
+    body_cache_limit = 8192
     def __init__(self, synchronizer, blockhash, chain_difficulty=0, originator_only=False):
         self.synchronizer = synchronizer
         self.chain = synchronizer.chain
@@ -374,6 +377,9 @@ class SyncBody(object):
         self.chain_difficulty = chain_difficulty
         self.block_requests_pool = []
         self.bodytask_queue = Q.PriorityQueue()
+        self.body_cache = [None]*self.body_cache_limit
+        self.body_cache_offset= self.chain.head.number+1
+        self.body_downloaded = dict()
         self.pending_bodyRequests = dict() 
         self.requests = dict()  # proto: Event
         self.body_request = None
@@ -410,6 +416,7 @@ class SyncBody(object):
     def schedule_block_fetch(self):
         batch_header = []
         log_st.debug('start sheduleing blocks')
+        #?? maxsize wrong??
         self.synchronizer.blockheader_queue = Queue(maxsize=8192) 
         
         while True:
@@ -429,6 +436,7 @@ class SyncBody(object):
             batch_header = batch_header[limit:]     
           self.fetch_ready.set() 
 
+
     def fetch_blocks(self):
         # fetch blocks (parallel here)
         num_blocks = 0
@@ -440,8 +448,6 @@ class SyncBody(object):
           try:
                 result = self.fetch_ready.get()
                 log_st.debug('start fetching blocks')
-        #        if throttled:
-        #           gevent.sleep(0.1)
                 num_blocks = len(self.block_requests_pool)   
                 deferred = AsyncResult()
                 self.body_request=deferred 
@@ -464,52 +470,36 @@ class SyncBody(object):
                 if len(self.block_requests_pool) == 0:
                    log_body_st.debug('block body fetching completed!')
                   # return True
-                   break
-               
+                   break 
+
                 fetching = False 
                 task_empty = False
-                pending=len(self.pending_bodyRequests)
+                pending = len(self.pending_bodyRequests)
+                idles = len(self.body_idle_protocols())
                 for proto in self.body_idle_protocols():
                #    assert proto not in self.requests
                    if proto.is_stopped:
                         continue
                    
-                   #if self.chainservice.block_queue.qsize()> 1010:
                    if pending>8192-num_fetched:
                        throttled = True  
                        log_body_st.debug('throttled')
                        break
                    else:
                        throttled = False
-                   proto_deferred = AsyncResult()
-                   # check if it's finished
-                   block_batch=[]
-                   if not self.bodytask_queue.empty():
-                     log_body_st.debug('pending body queue size', pending=
-                             self.bodytask_queue.qsize() )
-                     while len(block_batch)<self.max_blocks_per_request and not self.bodytask_queue.empty():
-                       blockheader=self.bodytask_queue.get()[1]
-                       block_batch.append(blockheader)
                    
-                     self.requests[proto] = proto_deferred
-                     blockhashes_batch = [h.hash for h in block_batch]
-                     log_body_st.debug('requesting blocks',
-                             num=len(blockhashes_batch),missing = self.bodytask_queue.qsize()-len(blockhashes_batch))
-                     proto.send_getblockbodies(*blockhashes_batch)
-                     self.pending_bodyRequests[proto] = HeaderRequest(block_batch[0].number, block_batch) 
-                     proto.body_idle = False 
-                     fetching = True
-                    # start =+ self.max_blocks_per_request
-                   else:
-                     task_empty= True
-                     break
+                   if not self.reserve_blocks(proto, self.max_blocks_per_request):
+                       log_body_st.debug('reserve blocks failed')
+                       break
+
+              
               # check if there are protos available for header fetching 
               #if not fetching and not self.headertask_queue.empty() and pending == len(self.pending_headerRequests):
-                if not fetching and not task_empty and not throttled:
+                if idles == len(self.body_idle_protocols()):
                      log_body_st.warn('no protocols available')
                      return self.exit(success=False) 
-                #if task_empty or throttled and pending==len(self.pending_bodyRequests): 
-                if throttled and pending==len(self.pending_bodyRequests): 
+                #if no blocks are fetched
+                if pending==len(self.pending_bodyRequests): 
                      continue
                 try:
                       proto_received = deferred.get(timeout=self.blocks_request_timeout)['proto']
@@ -537,7 +527,6 @@ class SyncBody(object):
                 log_body_st.info('received body headers',
                         headernum=self.pending_bodyRequests[proto_received].start,
                         bodyrequest=self.pending_bodyRequests[proto_received].headers)
-                del self.pending_bodyRequests[proto_received] 
 
                 if not bodies:
                        log_st.warn('empty getblockbodies reply, trying next proto')
@@ -549,25 +538,13 @@ class SyncBody(object):
 
                 # add received t_blocks
                 num_fetched += len(bodies)
+                # ??total requested is wrong  
                 log_body_st.debug('received block bodies',
                         num=len(bodies),num_fetched=num_fetched,
-                             total=num_blocks, missing=num_blocks - num_fetched)
-                proto_received.body_idle=True                                                                      
-                del self.requests[proto_received]
-                ts = time.time()
-                log_body_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
-                index = 0 
-                for h in headers:
-                      try:
-                        body = bodies[index]
-                        index = index + 1
-                        t_block = TransientBlock(h, body.transactions, body.uncles)
-                        self.chainservice.add_block(t_block, proto)  # this blocks if the queue is full
-                      except IndexError as e:
-                        log_body_st.error('headers and bodies mismatch', error=e)
-                        return self.exit(success=False)
-                      self.block_requests_pool.remove(h) 
-       
+                             total_requested=num_blocks, missing=num_blocks - num_fetched)
+                ts= time.time()
+                last_block = self.deliver_blocks(proto_received, bodies)
+
                 log_body_st.debug('adding blocks done', took=time.time() - ts)
                 
           except Exception as ex:
@@ -575,20 +552,107 @@ class SyncBody(object):
 
 
                  # done
-        last_block = t_block
+        #last_block = t_block
       #  assert not len(batch_header)
-        #  assert last_block.header.hash == self.blockhash
+        assert last_block.header.hash == self.blockhash
         log_body_st.debug('syncing finished')
         # at this point blocks are not in the chain yet, but in the add_block queue
-        if self.chain_difficulty >= self.chain.head.chain_difficulty():
-         self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
-        self.exit(success = True)
-          #return True
-    
         if self.chain_difficulty >= self.chain.get_score(self.chain.head):
             self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
 
         self.exit(success=True)
+
+    def reserve_blocks(self,proto,count):
+        log_body_st.debug('reserving blocks') 
+        if self.bodytask_queue.empty():
+            log_body_st.debug('body task queue empty')
+            return False  
+        #if self.pending_bodyRequests(proto):
+        #    log_body_st.debug('proto is busy')
+        #    return False 
+        log_body_st.debug('pending body queue size', pending = self.bodytask_queue.qsize())
+                     
+        space = len(self.body_cache)-len(self.body_downloaded)
+        for proto_busy in list(self.pending_bodyRequests):
+            space -= len(self.pending_bodyRequests(proto_busy).headers)
+        log_body_st.debug('space', space=space) 
+
+        block_batch=[]
+        i=0
+        total = self.bodytask_queue.qsize() 
+        while  i<space and  len(block_batch)<count and not self.bodytask_queue.empty():
+          header=self.bodytask_queue.get()[1]
+          index= header.number - self.body_cache_offset
+          if index >=len(self.body_cache) or index <0:
+             
+             log_st.debug('index goes beyond body cache space')
+             return False 
+          
+          if not self.body_cache[index]:
+             self.body_cache[index] = BodyResponse(header)
+       #  if isNoop(header):
+       # if proto.lacks(header.hash)
+          block_batch.append(header)
+          i +=1
+        self.requests[proto] = AsyncResult()
+        blockhashes_batch = [h.hash for h in block_batch]
+        proto.send_getblockbodies(*blockhashes_batch)
+        log_body_st.debug('requesting blocks',
+                num=len(blockhashes_batch),missing = total-len(blockhashes_batch))
+ 
+        self.pending_bodyRequests[proto] = HeaderRequest(block_batch[0].number, block_batch) 
+        proto.body_idle = False 
+        return True 
+
+    def deliver_blocks(self, proto, bodies):
+                # ??total requested is wrong  
+        proto.body_idle=True                                                                      
+        del self.requests[proto]
+
+        ts = time.time()
+        log_body_st.debug('adding blocks', qsize=self.chainservice.block_queue.qsize())
+        headers = self.pending_bodyRequests[proto].headers 
+        del self.pending_bodyRequests[proto] 
+        for i, h in enumerate(headers):
+                      try:
+                        body = bodies[i]
+                        idx = h.number - self.body_cache_offset
+                        if idx >= len(self.body_cache) or idx < 0 or not self.body_cache[idx]:
+                            log_body_st.debug('index does not match body cache')
+                            break     
+                        t_block = TransientBlock(h, body.transactions, body.uncles)
+                        self.body_cache[idx].block = t_block
+                      except IndexError as e:
+                        log_body_st.error('headers and bodies mismatch', error=e)
+                        return self.exit(success=False)
+                      self.body_downloaded[h.number] = None
+                      headers[i] = None
+                      self.block_requests_pool.remove(h)
+        # put failed body fetch back to task queue                   
+        for h in headers:
+            if h:
+                self.bodytask_queue.put((h.number,h))
+             
+       #import downloaded bodies into chain
+        for i, block in enumerate(self.body_cache):
+            if not self.body_cache[i]:
+                break
+        nimp = i
+        log_body_st.debug('nimp', nimp=nimp)
+        body_result = self.body_cache[:nimp]
+
+        log_body_st.debug('body downloaded',downloaded=self.body_downloaded)
+
+        if body_result:
+           for result in body_result:
+               self.chainservice.add_block(result.block,proto)
+               del  self.body_downloaded[result.header.number] 
+           self.body_cache = self.body_cache[nimp:]+[None for b in body_result]
+           self.body_cache_offset += nimp
+           log_body_st.debug('body cache offset', offset=self.body_cache_offset)
+        log_body_st.debug('body cache', bodycache=self.body_cache)
+        return result.block
+
 
     def receive_blockbodies(self, proto, bodies):
         log.debug('block bodies received', proto=proto, num=len(bodies))
