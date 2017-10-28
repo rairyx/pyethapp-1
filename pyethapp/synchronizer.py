@@ -30,18 +30,19 @@ class BodyResponse(object):
 class SyncTask(object):
 
     """
-    synchronizes a the chain starting from a given blockhash
-    blockchain hash is fetched from a single peer (which led to the unknown blockhash)
-    blocks are fetched from the best peers 
-
-    with missing block:
-        fetch headers
-            until known block
-    for headers 
-        fetch block bodies
-            for each block body
-                construct block
-                chainservice.add_blocks() # blocks if queue is full
+    Block header syncing 
+    When syncing with the original peer, from the latest block head of the
+    chain, divide the missing blocks into N sections, each section is made of
+    128  blockheader batches, each batch contains 192 headers, downloading a
+    skeleton of first header of each header batch from the original peer, for
+    each available idle peer, download header batch in parallel, for
+    each batch, match the first header and last header against respected
+    skeleton headers, verify header order and save the downloaded batch into a
+    header cache and deliver the partially downloaded headers to a queue for
+    body downloads scheduling in ascending order.
+    When header section downloading is complete, move the starting header
+    position to the start of next section, if the downloading is interrupted, restart downloading
+    from the head of best block of the current chain`
     """
     initial_blockheaders_per_request = 32
     max_blockheaders_per_request = 192
@@ -359,8 +360,17 @@ class SyncTask(object):
             self.requests[proto].set(blockheaders)
          
 
-class SyncBody(object):
 
+class SyncBody(object):
+    """
+    Handles body syncing
+    For each available peer, fetch block bodies in parallel from the task queue
+    in batches (128), for each body fetch response, match it against headers in
+    the body fetch task queue, if it matches, put the downloaded body in a body
+    result cache, delete the corresponding task from task  queue, import the
+    block bodies from block cache into the chain, remove the imported bodies
+    from body cache
+    """ 
     max_blocks_per_request = 128
     max_blocks_process= 2048 
     blocks_request_timeout = 19.
@@ -412,7 +422,12 @@ class SyncBody(object):
             print(traceback.format_exc())
             self.exit(success=False)
 
-
+      
+    #Body fetch scheduler
+    #Body fetch scheduler reads from downloaded header queue, dividing headers
+    #into batches(2048 or less), for each header batch adding the headers to the
+    #task queue, each queue item contains a task of 128 body fetches, activate
+    #body fetcher
     def schedule_block_fetch(self):
         batch_header = []
         log_st.debug('start sheduleing blocks')
@@ -650,7 +665,6 @@ class SyncBody(object):
            self.body_cache = self.body_cache[nimp:]+[None for b in body_result]
            self.body_cache_offset += nimp
            log_body_st.debug('body cache offset', offset=self.body_cache_offset)
-        log_body_st.debug('body cache', bodycache=self.body_cache)
         return result.block
 
 
