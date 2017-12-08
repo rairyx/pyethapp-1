@@ -47,7 +47,7 @@ class SyncTask(object):
     initial_blockheaders_per_request = 32
     max_blockheaders_per_request = 192
     max_skeleton_size = 128
-    blockheaders_request_timeout = 15.
+    blockheaders_request_timeout = 20.
     max_retries = 3
     retry_delay = 2.
     blocks_request_timeout = 16.
@@ -210,10 +210,15 @@ class SyncTask(object):
                       self.headertask_queue.put((request.start,request.start))
                       log_st.debug('timeouted request',
                               start=request.start,proto=proto)
+                 #     if failed header requests> 2 else set it idle try one more time, 
+                     # if len(request.headers) > 2:  
+                      proto.idle = True   
+                    #  else:
+                    #    proto.stop()
                       del self.pending_headerRequests[proto]
-                 #     if overtimes> 2 else set it idle try one more time, 
-                 #     proto.idle = True   
-                      proto.stop()
+              
+   
+                
           
           log_st.debug('header task queue size, pending queue size, batch_requestsize',size=self.headertask_queue.qsize(),pending=len(self.pending_headerRequests),batch_request=len(self.batch_requests)) 
           #if self.headertask_queue.qsize == 0 and len(self.pending_headerRequests)==0 and len(self.batch_requests)==0 :
@@ -249,43 +254,49 @@ class SyncTask(object):
                 continue
           try:
                proto_received = deferred.get(timeout=self.blockheaders_request_timeout)['proto']
-               header=deferred.get(timeout=self.blockheaders_request_timeout)['headers']
-               log_st.debug('headers batch received from proto', header=header)
+               headers =deferred.get(timeout=self.blockheaders_request_timeout)['headers']
+               log_st.debug('headers batch received from proto', header=headers)
           except gevent.Timeout:
                log_st.warn('syncing batch hashchain timed out')
-               retry += 1
-               if retry >= self.max_retries:
-                    log_st.warn('headers sync failed with all peers',
-                            num_protos=len(self.idle_protocols()))
-                    return self.exit(success=False)
-               else:
-                    log_st.info('headers sync failed with peers, retry', retry=retry)
-                    gevent.sleep(self.retry_delay)
+      #         retry += 1
+      #         if retry >= self.max_retries:
+      #              log_st.warn('headers sync failed with all peers',
+      #                      num_protos=len(self.idle_protocols()))
+      #              return self.exit(success=False)
+      
+      #else:
+      #              log_st.info('headers sync failed with peers, retry', retry=retry)
+               gevent.sleep(self.retry_delay)
                continue
           finally:
                del self.header_request 
             
           # check if header is empty  
-
-          if header[0] not in self.batch_requests:
-             continue
           if proto_received not in self.pending_headerRequests:
-              continue
-          start_header= self.pending_headerRequests[proto_received].start 
-          del self.pending_headerRequests[proto_received] 
-          verified = self.verify_headers(proto_received,header)
-          if not verified:
-             self.headertask_queue.put((start_header,start_header))
-             continue
-
+              
+              log_st.debug('proto not requested') 
+              continue  
+          self.deliver_headers(origin,proto_received, headers) 
+          proto_received.idle = True
            
+   
+    def deliver_headers(self,origin,proto,header):
+          if header[0] not in self.batch_requests:
+             log_st.debug('header delivered not matching requested headers') 
+             return 
+          start_header= self.pending_headerRequests[proto].start 
+          del self.pending_headerRequests[proto] 
+          verified = self.verify_headers(proto,header)
+          
+          if not verified:
+              log_st.debug('header delivered not verified') 
+              self.headertask_queue.put((start_header,start_header))
+              return 
           batch_header= header[::-1] #in hight rising order
           self.batch_result[(batch_header[0].number-origin-1):batch_header[0].number-origin-1+len(batch_header)]= batch_header
          # log_st.debug('batch result',batch_result= self.batch_result) 
           self.batch_requests.remove(header[0])
-          proto_received.set_idle()
-          del self.requests[proto_received] 
-          
+          del self.requests[proto] 
           header_ready = 0
           while (self.header_processed + header_ready) < len(self.batch_result) and self.batch_result[self.header_processed + header_ready]:
               header_ready += self.max_blockheaders_per_request
@@ -293,7 +304,7 @@ class SyncTask(object):
           if header_ready > 0 :
              # Headers are ready for delivery, gather them
              processed = self.batch_result[self.header_processed:self.header_processed+header_ready]
-          #   log_st.debug('issue fetching blocks',header_processed=self.header_processed, blocks=processed, proto=proto_received,count=len(processed),start=processed[0].number)  
+         #    log_st.debug('issue fetching blocks',header_processed=self.header_processed,blocks=processed, proto=proto,count=len(processed),start=processed[0].number)  
              
              count=len(processed)
              self.synchronizer.blockheader_queue.put(processed)
@@ -303,7 +314,7 @@ class SyncTask(object):
              #    return self.batch_result[:self.header_processed] 
           log_st.debug('remaining headers',num=len(self.batch_requests),headers=self.batch_requests)
           
-                 
+
 
 
     def idle_protocols(self):
@@ -340,7 +351,7 @@ class SyncTask(object):
             self.requests[proto] = deferred 
             blockheaders_batch = deferred.get(block=True,timeout=self.blockheaders_request_timeout)
         except gevent.Timeout:
-            log_st.warn('syncing batch hashchain timed out')
+            log_st.warn('fetch_headers syncing batch hashchain timed out')
             proto.stop()
             return self.exit(success=False)
         finally:
@@ -458,15 +469,13 @@ class SyncBody(object):
         num_fetched = 0
         retry = 0
         last_block = None
-        throttled = False
         while True:
           try:
                 result = self.fetch_ready.get()
-                log_st.debug('start fetching blocks')
+                log_body_st.debug('start fetching blocks')
                 num_blocks = len(self.block_requests_pool)   
                 deferred = AsyncResult()
                 self.body_request=deferred 
-             #   throttled = False
               
               #check timed out pending requests
                 for proto in list(self.pending_bodyRequests):
@@ -477,10 +486,12 @@ class SyncBody(object):
                               self.bodytask_queue.put((h.number,h))
                           log_body_st.debug('timeouted request',
                                   start=request.start,proto=proto)
+                     #     if failed headers> 2 set it idle, 
+                          if len(request.headers) > 2:  
+                            proto.body_idle = True   
+                          else:
+                            proto.stop()
                           del self.pending_bodyRequests[proto]
-                     #     if overtimes> 2 else set it idle try one more time, 
-                     #     proto.body_idle = True   
-                          proto.stop()
               
                 if len(self.block_requests_pool) == 0:
                    log_body_st.debug('block body fetching completed!')
@@ -495,14 +506,6 @@ class SyncBody(object):
                #    assert proto not in self.requests
                    if proto.is_stopped:
                         continue
-                   
-                   if pending>8192-num_fetched:
-                       throttled = True  
-                       log_body_st.debug('throttled')
-                       break
-                   else:
-                       throttled = False
-                   
                    if not self.reserve_blocks(proto, self.max_blocks_per_request):
                        log_body_st.debug('reserve blocks failed')
                        break
@@ -524,7 +527,7 @@ class SyncBody(object):
                       log_body_st.warn('syncing batch block body timed out')
                       retry += 1
                       if retry >= self.max_retries:
-                        log_body_st.warn('headers sync failed with all peers',
+                        log_body_st.warn('headers sync failed with peers',
                                 num_protos=len(self.body_idle_protocols()))
                         return self.exit(success=False)
                       else:
