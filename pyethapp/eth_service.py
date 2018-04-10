@@ -112,7 +112,7 @@ class ChainService(WiredService):
     genesis = None
     synchronizer = None
     config = None
-    block_queue_size = 1024
+    block_queue_size = 2048
     processed_gas = 0
     processed_elapsed = 0
 
@@ -278,6 +278,7 @@ class ChainService(WiredService):
         if not self.add_blocks_lock:
             self.add_blocks_lock = True  # need to lock here (ctx switch is later)
             gevent.spawn(self._add_blocks)
+            log.debug('return from add blocks')
 
     def add_mined_block(self, block):
         log.debug('adding mined block', block=block)

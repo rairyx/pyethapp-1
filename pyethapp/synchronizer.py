@@ -1,13 +1,17 @@
-import sys
+#import sys
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 from gevent.event import AsyncResult
 import gevent
 import time
-from eth_protocol import TransientBlockBody, TransientBlock
+from .eth_protocol import TransientBlockBody, TransientBlock
 from ethereum.block import BlockHeader
 from ethereum.slogging import get_logger
 import ethereum.utils as utils
 import traceback
-import Queue as Q
+import queue as Q
 from gevent.queue import Queue
 
 log = get_logger('eth.sync')
@@ -25,7 +29,7 @@ class HeaderRequest(object):
 class BodyResponse(object):
     def __init__(self, header=None):
         self.header = header
-        self.block = []
+        self.block = None
 
 class SyncTask(object):
 
@@ -270,6 +274,7 @@ class SyncTask(object):
       
       #else:
       #              log_st.info('headers sync failed with peers, retry', retry=retry)
+               self.synchronizer.blockheader_queue.put(None)
                gevent.sleep(self.retry_delay)
                continue
           finally:
@@ -287,7 +292,7 @@ class SyncTask(object):
     def deliver_headers(self,origin,proto,header):
           if header[0].number not in self.batch_requests:
              log_st.debug('header delivered not matching requested headers') 
-             return 
+             self.exit(False) 
           index = self.pending_headerRequests[proto].start
           
           log_st.debug('index', index=index)
@@ -404,7 +409,8 @@ class SyncBody(object):
         self.pending_bodyRequests = dict() 
         self.requests = dict()  # proto: Event
         self.body_request = None
-        self.fetch_ready= AsyncResult()
+        self.fetch_ready = AsyncResult()
+        self.import_ready = AsyncResult()
         gevent.spawn(self.run)
    #     gevent.spawn(self.schedule_block_fetch) 
 
@@ -429,12 +435,18 @@ class SyncBody(object):
         try:
             gevent.spawn(self.schedule_block_fetch)
             gevent.spawn(self.fetch_blocks)
+            gevent.spawn(self.import_block)
         except Exception:
             print(traceback.format_exc())
             self.exit(success=False)
+     #   log_body_st.debug('syncing finished')
+     #   if self.chain_difficulty >= self.chain.get_score(self.chain.head):
+     #       self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
+
+      #  self.exit(success=True)
+
 
       
-    #Body fetch scheduler
     #Body fetch scheduler reads from downloaded header queue, dividing headers
     #into batches(2048 or less), for each header batch adding the headers to the
     #task queue, each queue item contains a task of 128 body fetches, activate
@@ -443,7 +455,7 @@ class SyncBody(object):
         batch_header = []
         log_st.debug('start sheduleing blocks')
         #?? maxsize wrong??
-        self.synchronizer.blockheader_queue = Queue(maxsize=8192) 
+        self.synchronizer.blockheader_queue = Queue(maxsize=0) 
         
         while True:
           batch_header = self.synchronizer.blockheader_queue.get()
@@ -561,9 +573,9 @@ class SyncBody(object):
                         num=len(bodies),num_fetched=num_fetched,
                              total_requested=num_blocks, missing=num_blocks - num_fetched)
                 ts= time.time()
-                last_block = self.deliver_blocks(proto_received, bodies)
+                self.deliver_blocks(proto_received, bodies)
 
-                log_body_st.debug('adding blocks done', took=time.time() - ts)
+           #     log_body_st.debug('adding blocks done', took=time.time() - ts)
                 
           except Exception as ex:
               log_body_st.error(error = ex)
@@ -571,14 +583,6 @@ class SyncBody(object):
 
                  # done
         #last_block = t_block
-      #  assert not len(batch_header)
-        assert last_block.header.hash == self.blockhash
-        log_body_st.debug('syncing finished')
-        # at this point blocks are not in the chain yet, but in the add_block queue
-        if self.chain_difficulty >= self.chain.get_score(self.chain.head):
-            self.chainservice.broadcast_newblock(last_block, self.chain_difficulty, origin=proto)
-
-        self.exit(success=True)
 
     def reserve_blocks(self,proto,count):
         log_body_st.debug('reserving blocks') 
@@ -611,7 +615,7 @@ class SyncBody(object):
        #  if isNoop(header):
        # if proto.lacks(header.hash)
           block_batch.append(header)
-          i +=1
+          i += 1
         self.requests[proto] = AsyncResult()
         blockhashes_batch = [h.hash for h in block_batch]
         proto.send_getblockbodies(*blockhashes_batch)
@@ -650,25 +654,37 @@ class SyncBody(object):
         for h in headers:
             if h:
                 self.bodytask_queue.put((h.number,h))
-             
-       #import downloaded bodies into chain
-        for i, block in enumerate(self.body_cache):
-            if not self.body_cache[i]:
-                break
-        nimp = i
-        log_body_st.debug('nimp', nimp=nimp)
-        body_result = self.body_cache[:nimp]
+       #activate importing bodies
+        log_body_st.debug('acivate importing blocks...')
+        self.import_ready.set(proto)
+    
+    def import_block(self):
+        while True:
+            self.import_ready = AsyncResult()
+            try:
+                proto = self.import_ready.get()
+                log_body_st.debug('start importing blocks...')
+                for i, block in enumerate(self.body_cache):
+                    if not self.body_cache[i] or self.body_cache[i].block is None: 
+                        break
+                nimp = i
+                log_body_st.debug('nimp', nimp=nimp)
+                body_result = self.body_cache[:nimp]
 
-        log_body_st.debug('body downloaded',downloaded=self.body_downloaded)
+                log_body_st.debug('body downloaded',downloaded=self.body_downloaded)
 
-        if body_result:
-           for result in body_result:
-               self.chainservice.add_block(result.block,proto)
-               del  self.body_downloaded[result.header.number] 
-           self.body_cache = self.body_cache[nimp:]+[None for b in body_result]
-           self.body_cache_offset += nimp
-           log_body_st.debug('body cache offset', offset=self.body_cache_offset)
-        return result.block
+                if body_result:
+                   for result in body_result:
+                       self.chainservice.add_block(result.block,proto)
+                       del  self.body_downloaded[result.header.number] 
+                   self.body_cache = self.body_cache[nimp:]+[None for b in body_result]
+                   self.body_cache_offset += nimp
+                   log_body_st.debug('body cache offset', offset=self.body_cache_offset)
+            except Exception as ex:
+                 log_body_st.error(error = ex)
+
+
+
 
 
     def receive_blockbodies(self, proto, bodies):
@@ -731,7 +747,7 @@ class Synchronizer(object):
         self._protocols = dict()  # proto: chain_difficulty
         self.synctask = None
         self.syncbody = None
-        self.blockheader_queue = Queue(maxsize=8192) 
+        self.blockheader_queue = Queue(maxsize=0) 
 
     def synctask_exited(self, success=False):
         # note: synctask broadcasts best block
@@ -754,8 +770,8 @@ class Synchronizer(object):
     def protocols(self):
         "return protocols which are not stopped sorted by highest chain_difficulty"
         # filter and cleanup
-        self._protocols = dict((p, cd) for p, cd in self._protocols.items() if not p.is_stopped)
-        return sorted(self._protocols.keys(), key=lambda p: self._protocols[p], reverse=True)
+        self._protocols = dict((p, cd) for p, cd in list(self._protocols.items()) if not p.is_stopped)
+        return sorted(list(self._protocols.keys()), key=lambda p: self._protocols[p], reverse=True)
 
 
     def receive_newblock(self, proto, t_block, chain_difficulty):
@@ -826,7 +842,7 @@ class Synchronizer(object):
 
         if self.force_sync:
             blockhash, chain_difficulty = self.force_sync
-            log.debug('starting forced syctask', blockhash=blockhash.encode('hex'))
+            log.debug('starting forced syctask', blockhash=encode_hex(blockhash))
             self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
 
         elif chain_difficulty > self.chain.get_score(self.chain.head):
@@ -852,7 +868,7 @@ class Synchronizer(object):
             log.warn('supporting only one newblockhash', num=len(newblockhashes))
         if not self.synctask:
             blockhash = newblockhashes[0]
-            log.debug('starting synctask for newblockhashes', blockhash=blockhash.encode('hex'))
+            log.debug('starting synctask for newblockhashes', blockhash=encode_hex(blockhash))
             self.synctask = SyncTask(self, proto, blockhash, 0, originator_only=True)
             self.syncbody = SyncBody(self, chain_difficulty, blockhash)
 
