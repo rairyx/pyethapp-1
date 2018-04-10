@@ -1,4 +1,3 @@
-#import sys
 from __future__ import print_function
 from __future__ import absolute_import
 from builtins import str
@@ -9,7 +8,7 @@ import time
 from .eth_protocol import TransientBlockBody, TransientBlock
 from ethereum.block import BlockHeader
 from ethereum.slogging import get_logger
-import ethereum.utils as utils
+from ethereum.utils import encode_hex
 import traceback
 import queue as Q
 from gevent.queue import Queue
@@ -203,7 +202,6 @@ class SyncTask(object):
             self.headertask_queue.put((index,index))           
 
         while True: 
-         # requests = iter(self.batch_requests)  
           
           deferred = AsyncResult()
           self.header_request=deferred 
@@ -414,6 +412,7 @@ class SyncBody(object):
         gevent.spawn(self.run)
    #     gevent.spawn(self.schedule_block_fetch) 
 
+
     @property
     def protocols(self):
         if self.originator_only:
@@ -453,7 +452,7 @@ class SyncBody(object):
     #body fetcher
     def schedule_block_fetch(self):
         batch_header = []
-        log_st.debug('start sheduleing blocks')
+        log_st.debug('start sheduling blocks')
         #?? maxsize wrong??
         self.synchronizer.blockheader_queue = Queue(maxsize=0) 
         
@@ -508,7 +507,7 @@ class SyncBody(object):
                 if len(self.block_requests_pool) == 0:
                    log_body_st.debug('block body fetching completed!')
                   # return True
-                   break 
+               #    break 
 
                 fetching = False 
                 task_empty = False
@@ -773,7 +772,6 @@ class Synchronizer(object):
         self._protocols = dict((p, cd) for p, cd in list(self._protocols.items()) if not p.is_stopped)
         return sorted(list(self._protocols.keys()), key=lambda p: self._protocols[p], reverse=True)
 
-
     def receive_newblock(self, proto, t_block, chain_difficulty):
         "called if there's a newblock announced on the network"
         log.debug('newblock', proto=proto, block=t_block, chain_difficulty=chain_difficulty,
@@ -849,8 +847,15 @@ class Synchronizer(object):
             log.debug('sufficient difficulty')
             self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
             if not self.syncbody:
-              self.syncbody = SyncBody(self, chain_difficulty)
-            
+              self.syncbody = SyncBody(self, chain_difficulty)            
+              if not self.synctask:
+                self.synctask = SyncTask(self, proto, blockhash, chain_difficulty)
+            else:
+                log.debug('received status but already syncing, won\'t start new sync task',
+                          proto=proto,
+                          blockhash=encode_hex(blockhash),
+                          chain_difficulty=chain_difficulty)
+
 
     def receive_newblockhashes(self, proto, newblockhashes):
         """
